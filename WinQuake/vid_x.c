@@ -40,9 +40,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "d_local.h"
 
-cvar_t		_windowed_mouse = {"_windowed_mouse","0", true};
 cvar_t		m_filter = {"m_filter","0", true};
-float old_windowed_mouse;
+qboolean	cursor_grabbed;
 
 qboolean        mouse_avail;
 int             mouse_buttons=3;
@@ -425,7 +424,6 @@ void ResetSharedFrameBuffers(void)
 
 void	VID_Init (unsigned char *palette)
 {
-
    int pnum, i;
    XVisualInfo template;
    int num_visuals;
@@ -851,29 +849,20 @@ void GetEvent(void)
 		break;
 
 	case MotionNotify:
-		if (_windowed_mouse.value) {
-			mouse_x = (float) ((int)x_event.xmotion.x - (int)(vid.width/2));
-			mouse_y = (float) ((int)x_event.xmotion.y - (int)(vid.height/2));
-//printf("m: x=%d,y=%d, mx=%3.2f,my=%3.2f\n", 
-//	x_event.xmotion.x, x_event.xmotion.y, mouse_x, mouse_y);
+		mouse_x = (float) ((int)x_event.xmotion.x - (int)(vid.width/2));
+		mouse_y = (float) ((int)x_event.xmotion.y - (int)(vid.height/2));
 
-			/* move the mouse to the window center again */
-			XSelectInput(x_disp,x_win,StructureNotifyMask|KeyPressMask
-				|KeyReleaseMask|ExposureMask
-				|ButtonPressMask
-				|ButtonReleaseMask);
-			XWarpPointer(x_disp,None,x_win,0,0,0,0, 
-				(vid.width/2),(vid.height/2));
-			XSelectInput(x_disp,x_win,StructureNotifyMask|KeyPressMask
-				|KeyReleaseMask|ExposureMask
-				|PointerMotionMask|ButtonPressMask
-				|ButtonReleaseMask);
-		} else {
-			mouse_x = (float) (x_event.xmotion.x-p_mouse_x);
-			mouse_y = (float) (x_event.xmotion.y-p_mouse_y);
-			p_mouse_x=x_event.xmotion.x;
-			p_mouse_y=x_event.xmotion.y;
-		}
+		/* move the mouse to the window center again */
+		XSelectInput(x_disp,x_win,StructureNotifyMask|KeyPressMask
+			|KeyReleaseMask|ExposureMask
+			|ButtonPressMask
+			|ButtonReleaseMask);
+		XWarpPointer(x_disp,None,x_win,0,0,0,0, 
+			(vid.width/2),(vid.height/2));
+		XSelectInput(x_disp,x_win,StructureNotifyMask|KeyPressMask
+			|KeyReleaseMask|ExposureMask
+			|PointerMotionMask|ButtonPressMask
+			|ButtonReleaseMask);
 		break;
 
 	case ButtonPress:
@@ -912,17 +901,12 @@ void GetEvent(void)
 			oktodraw = true;
 	}
    
-	if (old_windowed_mouse != _windowed_mouse.value) {
-		old_windowed_mouse = _windowed_mouse.value;
-
-		if (!_windowed_mouse.value) {
-			/* ungrab the pointer */
-			XUngrabPointer(x_disp,CurrentTime);
-		} else {
-			/* grab the pointer */
-			XGrabPointer(x_disp,x_win,True,0,GrabModeAsync,
-				GrabModeAsync,x_win,None,CurrentTime);
-		}
+	if (!cursor_grabbed)
+	{
+		cursor_grabbed = true;
+		/* grab the pointer */
+		XGrabPointer(x_disp,x_win,True,0,GrabModeAsync,
+			GrabModeAsync,x_win,None,CurrentTime);
 	}
 }
 
@@ -1101,7 +1085,6 @@ void D_EndDirectRect (int x, int y, int width, int height)
 
 void IN_Init (void)
 {
-	Cvar_RegisterVariable (&_windowed_mouse);
 	Cvar_RegisterVariable (&m_filter);
    if ( COM_CheckParm ("-nomouse") )
      return;
