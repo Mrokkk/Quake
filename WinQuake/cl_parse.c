@@ -239,9 +239,13 @@ void CL_ParseServerInfo (void)
 	str = MSG_ReadString ();
 	strncpy (cl.levelname, str, sizeof(cl.levelname)-1);
 
+#if 0 // what's the purpose of that?
 // seperate the printfs so the server message can have a color
 	Con_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n\n");
 	Con_Printf ("%c%s\n", 2, str);
+#else
+	Con_Printf ("\n");
+#endif
 
 //
 // first we go through and touch all of the precache data that still

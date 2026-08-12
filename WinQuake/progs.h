@@ -70,11 +70,11 @@ void PR_LoadProgs (void);
 
 void PR_Profile_f (void);
 
+string_t PR_CreateServerString(char* string);
+const char* PR_GetString(string_t id);
+
 edict_t *ED_Alloc (void);
 void ED_Free (edict_t *ed);
-
-char	*ED_NewString (char *string);
-// returns a copy of the string allocated from the server's string heap
 
 void ED_Print (edict_t *ed);
 void ED_Write (FILE *f, edict_t *ed);
@@ -91,10 +91,10 @@ void ED_LoadFromFile (char *data);
 edict_t *EDICT_NUM(int n);
 int NUM_FOR_EDICT(edict_t *e);
 
-#define	NEXT_EDICT(e) ((edict_t *)( (byte *)e + pr_edict_size))
+#define	NEXT_EDICT(e) ((edict_t *)( (byte *)(e) + pr_edict_size))
 
-#define	EDICT_TO_PROG(e) ((byte *)e - (byte *)sv.edicts)
-#define PROG_TO_EDICT(e) ((edict_t *)((byte *)sv.edicts + e))
+#define	EDICT_TO_PROG(e) ((byte *)(e) - (byte *)sv.edicts)
+#define PROG_TO_EDICT(e) ((edict_t *)((byte *)sv.edicts + (e)))
 
 //============================================================================
 
@@ -132,3 +132,4 @@ void ED_PrintNum (int ent);
 
 eval_t *GetEdictFieldValue(edict_t *ed, char *field);
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

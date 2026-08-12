@@ -1,3 +1,4 @@
+#define _GNU_SOURCE 1
 #include <unistd.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -12,7 +13,6 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <string.h>
-#include <ctype.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -41,12 +41,12 @@ void Sys_Printf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		text[1024];
-	
+
 	va_start (argptr,fmt);
 	vsprintf (text,fmt,argptr);
 	va_end (argptr);
 	fprintf(stderr, "%s", text);
-	
+
 	Con_Print (text);
 }
 
@@ -83,28 +83,42 @@ void Sys_Printf (char *fmt, ...)
 }
 */
 
+static const char *colors[] = {
+	/* COLOR_BLACK		*/ "\e[30m",
+	/* COLOR_RED		*/ "\e[31m",
+	/* COLOR_GREEN		*/ "\e[32m",
+	/* COLOR_YELLOW		*/ "\e[33m",
+	/* COLOR_BLUE		*/ "\e[34m",
+	/* COLOR_CYAN		*/ "\e[35m",
+	/* COLOR_MAGENTA	*/ "\e[36m",
+	/* COLOR_WHITE		*/ "\e[37m",
+	/* COLOR_ORANGE		*/ "\e[33m",
+	/* COLOR_GREY		*/ "\e[38;5;245m",
+};
+
 void Sys_Printf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		text[1024];
-	unsigned char		*p;
+	const char	*p;
 
-	va_start (argptr,fmt);
-	vsprintf (text,fmt,argptr);
-	va_end (argptr);
+	va_start(argptr, fmt);
+	vsnprintf(text, sizeof(text), fmt, argptr);
+	va_end(argptr);
 
-	if (strlen(text) > sizeof(text))
-		Sys_Error("memory overwrite in Sys_Printf");
+	if (nostdout)
+		return;
 
-    if (nostdout)
-        return;
-
-	for (p = (unsigned char *)text; *p; p++) {
-		*p &= 0x7f;
-		if ((*p > 128 || *p < 32) && *p != 10 && *p != 13 && *p != 9)
-			printf("[%02x]", *p);
+	for (p = text; *p; p++)
+	{
+		if (*p == Q_COLOR_ESCAPE)
+		{
+			fputs(colors[ColorIndex(*++p)], stdout);
+		}
 		else
+		{
 			putc(*p, stdout);
+		}
 	}
 }
 
@@ -137,33 +151,33 @@ void Sys_Init(void)
 }
 
 void Sys_Error (char *error, ...)
-{ 
-    va_list     argptr;
-    char        string[1024];
+{
+	va_list		argptr;
+	char		string[1024];
 
 // change stdin to non blocking
     fcntl (0, F_SETFL, fcntl (0, F_GETFL, 0) & ~FNDELAY);
-    
-    va_start (argptr,error);
-    vsprintf (string,error,argptr);
-    va_end (argptr);
-	fprintf(stderr, "Error: %s\n", string);
 
+	va_start (argptr,error);
+	vsprintf (string,error,argptr);
+	va_end (argptr);
+	fprintf(stderr, "Error: %s\n", string);
+	Sys_StacktraceDump ();
 	Host_Shutdown ();
 	exit (1);
 
-} 
+}
 
 void Sys_Warn (char *warning, ...)
-{ 
-    va_list     argptr;
-    char        string[1024];
-    
-    va_start (argptr,warning);
-    vsprintf (string,warning,argptr);
-    va_end (argptr);
+{
+	va_list		argptr;
+	char		string[1024];
+
+	va_start (argptr,warning);
+	vsprintf (string,warning,argptr);
+	va_end (argptr);
 	fprintf(stderr, "Warning: %s", string);
-} 
+}
 
 /*
 ============
@@ -175,10 +189,10 @@ returns -1 if not present
 int	Sys_FileTime (char *path)
 {
 	struct	stat	buf;
-	
+
 	if (stat (path,&buf) == -1)
 		return -1;
-	
+
 	return buf.st_mtime;
 }
 
@@ -192,13 +206,13 @@ int Sys_FileOpenRead (char *path, int *handle)
 {
 	int	h;
 	struct stat	fileinfo;
-    
-	
+
+
 	h = open (path, O_RDONLY, 0666);
 	*handle = h;
 	if (h == -1)
 		return -1;
-	
+
 	if (fstat (h,&fileinfo) == -1)
 		Sys_Error ("Error fstating %s", path);
 
@@ -210,7 +224,7 @@ int Sys_FileOpenWrite (char *path)
 	int     handle;
 
 	umask (0);
-	
+
 	handle = open(path,O_RDWR | O_CREAT | O_TRUNC
 	, 0666);
 
@@ -242,10 +256,10 @@ int Sys_FileRead (int handle, void *dest, int count)
 
 void Sys_DebugLog(char *file, char *fmt, ...)
 {
-    va_list argptr; 
+    va_list argptr;
     static char data[1024];
     int fd;
-    
+
     va_start(argptr, fmt);
     vsprintf(data, fmt, argptr);
     va_end(argptr);
@@ -281,10 +295,10 @@ void Sys_EditFile(char *filename)
 double Sys_FloatTime (void)
 {
     struct timeval tp;
-    struct timezone tzp; 
-    static int      secbase; 
-    
-    gettimeofday(&tp, &tzp);  
+    struct timezone tzp;
+    static int      secbase;
+
+    gettimeofday(&tp, &tzp);
 
     if (!secbase)
     {
@@ -351,19 +365,196 @@ void Sys_LowFPPrecision (void)
 }
 #endif
 
+#include <ucontext.h>
+
+#ifdef USE_BACKTRACE
+
+#include <backtrace.h>
+
+static void BacktraceErrorCallback(void *data, const char *message, int error)
+{
+	if (error == -1)
+	{
+		Sys_Printf(S_COLOR_RED "Debug info missing\n");
+		return;
+	}
+
+	Sys_Printf(S_COLOR_RED "Backtrace error %d: %s\n", error, message);
+}
+
+static int BacktraceCallback(void *data, uintptr_t pc, const char *pathname, int lineNumber, const char *function)
+{
+	int *index = (int *)(data);
+	if (pathname != NULL || function != NULL)
+	{
+		Sys_Printf("#%-2u " S_COLOR_BLUE "%p " S_COLOR_WHITE "in " S_COLOR_YELLOW "%s " S_COLOR_WHITE "at " S_COLOR_GREEN "%s" S_COLOR_WHITE ":%d\n",
+			*index,
+			(void*)pc,
+			function,
+			pathname,
+			lineNumber);
+	}
+	else
+	{
+		Sys_Printf("#%-2u " S_COLOR_BLUE "%p " S_COLOR_WHITE "in ??\n", *index, (void*)pc);
+	}
+	(*index)++;
+	return 0;
+}
+
+static struct backtrace_state *backtrace_state;
+
+#endif
+
+static void SignalHandler(int sig, siginfo_t *info, void *context)
+{
+	ucontext_t *m = (ucontext_t*)context;
+
+	fprintf(stderr, "Received SIG%s at %p\n",
+		sigabbrev_np(sig),
+#ifdef __x86_64__
+		(void*)m->uc_mcontext.gregs[REG_RIP]
+#elif defined(__i386__)
+		(void*)m->uc_mcontext.gregs[REG_EIP]
+#else
+		NULL
+#endif
+	);
+
+	fprintf(stderr, "Reason: ");
+
+	switch (sig)
+	{
+		case SIGILL:
+			switch (info->si_code)
+			{
+				case ILL_ILLOPC:
+					fprintf(stderr, "illegal opcode\n");
+					break;
+				case ILL_ILLOPN:
+					fprintf(stderr, "illegal operand\n");
+					break;
+				case ILL_ILLADR:
+					fprintf(stderr, "illegal addressing mode\n");
+					break;
+				case ILL_ILLTRP:
+					fprintf(stderr, "illegal trap\n");
+					break;
+				case ILL_PRVOPC:
+					fprintf(stderr, "privileged opcode\n");
+					break;
+				case ILL_PRVREG:
+					fprintf(stderr, "privileged register\n");
+					break;
+				case ILL_COPROC:
+					fprintf(stderr, "coprocessor error\n");
+					break;
+				case ILL_BADSTK:
+					fprintf(stderr, "internal stack error\n");
+					break;
+				default:
+					goto unknown;
+			}
+			break;
+		case SIGSEGV:
+			switch (info->si_code)
+			{
+				case SEGV_MAPERR:
+					fprintf(stderr, "%p not mapped to an object\n", info->si_addr);
+					break;
+				case SEGV_ACCERR:
+					fprintf(stderr, "invalid permissions for object at %p\n", info->si_addr);
+					break;
+				case SEGV_BNDERR:
+					fprintf(stderr, "failed address bound checks for %p\n", info->si_addr);
+					break;
+				case SEGV_PKUERR:
+					fprintf(stderr, "access to %p denied by memory protection keys\n", info->si_addr);
+					break;
+				default:
+					goto unknown;
+			}
+			break;
+		case SIGBUS:
+			switch (info->si_code)
+			{
+				case BUS_ADRALN:
+					fprintf(stderr, "invalid address alignment at %p\n", info->si_addr);
+					break;
+				case BUS_ADRERR:
+					fprintf(stderr, "nonexistent physical address %p\n", info->si_addr);
+					break;
+				case BUS_OBJERR:
+					fprintf(stderr, "object-specific hardware error for address %p\n", info->si_addr);
+					break;
+				case BUS_MCEERR_AR:
+					fprintf(stderr, "hardware memory error consumed on a machine check\n");
+					break;
+				case BUS_MCEERR_AO:
+					fprintf(stderr, "hardware memory error detected in process but not consumed\n");
+					break;
+				default:
+					goto unknown;
+			}
+			break;
+
+		default:
+			switch (info->si_code)
+			{
+				case SI_USER:
+					fprintf(stderr, "user\n");
+					break;
+				case SI_KERNEL:
+					fprintf(stderr, "kernel\n");
+					break;
+				unknown:
+				default:
+					fprintf(stderr, "unknown\n");
+					break;
+			}
+	}
+
+	Sys_StacktraceDump ();
+
+	Host_Shutdown ();
+}
+
+void Sys_StacktraceDump(void)
+{
+#ifdef USE_BACKTRACE
+	Sys_Printf("Backtrace:\n");
+	int index = 0;
+	backtrace_full(backtrace_state, 1, BacktraceCallback, BacktraceErrorCallback, (void *)&index);
+#endif
+}
+
 int main (int c, char **v)
 {
-
 	double		time, oldtime, newtime;
 	quakeparms_t parms;
 	extern int vcrFile;
 	extern int recording;
 	int j;
 
-//	static char cwd[1024];
+#ifdef USE_BACKTRACE
+	backtrace_state = backtrace_create_state(NULL, 0, BacktraceErrorCallback, NULL);
+#endif
 
-//	signal(SIGFPE, floating_point_exception_handler);
-	signal(SIGFPE, SIG_IGN);
+	{
+		struct sigaction sa = {};
+		sa.sa_handler	= SIG_IGN;
+		sigaction(SIGINT, &sa, NULL);
+
+		sa.sa_sigaction	= &SignalHandler;
+		sa.sa_flags		= SA_RESETHAND | SA_SIGINFO;
+		sigaction(SIGINT,	&sa, NULL);
+		sigaction(SIGSEGV,	&sa, NULL);
+		sigaction(SIGBUS,	&sa, NULL);
+		sigaction(SIGILL,	&sa, NULL);
+		sigaction(SIGFPE,	&sa, NULL);
+		sigaction(SIGABRT,	&sa, NULL);
+		sigaction(SIGTERM,	&sa, NULL);
+	}
 
 	memset(&parms, 0, sizeof(parms));
 
@@ -451,7 +642,8 @@ void Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length)
 	r = mprotect((char*)addr, length + startaddr - addr + psize, 7);
 
 	if (r < 0)
-    		Sys_Error("Protection change failed\n");
+		Sys_Error("Protection change failed\n");
 
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

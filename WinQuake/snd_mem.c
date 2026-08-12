@@ -235,7 +235,7 @@ void DumpChunks(void)
 		memcpy (str, data_p, 4);
 		data_p += 4;
 		iff_chunk_len = GetLittleLong();
-		Con_Printf ("0x%x : %s (%d)\n", (int)(data_p - 4), str, iff_chunk_len);
+		Con_Printf ("0x%lx : %s (%d)\n", (long)(data_p - 4), str, iff_chunk_len);
 		data_p += (iff_chunk_len + 1) & ~1;
 	} while (data_p < iff_end);
 }
@@ -339,3 +339,4 @@ wavinfo_t GetWavinfo (char *name, byte *wav, int wavlength)
 	return info;
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

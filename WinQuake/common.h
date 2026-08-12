@@ -19,15 +19,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // comndef.h  -- general definitions
 
+#ifndef __COMMON_H__
+#define __COMMON_H__
+
 #if !defined BYTE_DEFINED
 typedef unsigned char 		byte;
 #define BYTE_DEFINED 1
 #endif
 
-#undef true
-#undef false
+#ifndef true
+#define true 1
+#endif
 
-typedef enum {false, true}	qboolean;
+#ifndef false
+#define false 0
+#endif
+
+typedef int qboolean;
 
 //============================================================================
 
@@ -63,7 +71,7 @@ void InsertLinkAfter (link_t *l, link_t *after);
 // (type *)STRUCT_FROM_LINK(link_t *link, type, member)
 // ent = STRUCT_FROM_LINK(link,entity_t,order)
 // FIXME: remove this mess!
-#define	STRUCT_FROM_LINK(l,t,m) ((t *)((byte *)l - (int)&(((t *)0)->m)))
+#define	STRUCT_FROM_LINK(l,t,m) ((t *)((byte *)l - (long)&(((t *)0)->m)))
 
 //============================================================================
 
@@ -82,6 +90,9 @@ void InsertLinkAfter (link_t *l, link_t *after);
 #define Q_MININT 	((int)0x80000000)
 #define Q_MINLONG ((int)0x80000000)
 #define Q_MINFLOAT ((int)0x7fffffff)
+
+#define Q_MIN(a, b)   ({ a < b ? a : b; })
+#define Q_MAX(a, b)   ({ a > b ? a : b; })
 
 //============================================================================
 
@@ -181,3 +192,5 @@ void COM_LoadCacheFile (char *path, struct cache_user_s *cu);
 extern	struct cvar_s	registered;
 
 extern qboolean		standard_quake, rogue, hipnotic;
+
+#endif // __COMMON_H__

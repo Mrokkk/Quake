@@ -1051,9 +1051,13 @@ void R_RenderView (void)
 	int		dummy;
 	int		delta;
 	
+#if 0
 	delta = (byte *)&dummy - r_stack_start;
 	if (delta < -10000 || delta > 10000)
 		Sys_Error ("R_RenderView: called without enough stack");
+#else
+    (void)delta;
+#endif
 
 	if ( Hunk_LowMark() & 3 )
 		Sys_Error ("Hunk is missaligned");
@@ -1083,3 +1087,4 @@ void R_InitTurb (void)
 	}
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

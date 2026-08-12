@@ -524,9 +524,11 @@ void MSG_WriteByte (sizebuf_t *sb, int c)
 {
 	byte    *buf;
 	
+#if 0
 #ifdef PARANOID
 	if (c < 0 || c > 255)
 		Sys_Error ("MSG_WriteByte: range error");
+#endif
 #endif
 
 	buf = SZ_GetSpace (sb, 1);
@@ -862,7 +864,7 @@ void COM_FileBase (char *in, char *out)
 	while (s != in && *s != '.')
 		s--;
 	
-	for (s2 = s ; *s2 && *s2 != '/' ; s2--)
+	for (s2 = s ; s2 >= in && *s2 && *s2 != '/' ; s2--)
 	;
 	
 	if (s-s2 < 2)
@@ -1824,4 +1826,4 @@ void COM_InitFilesystem (void)
 		proghack = true;
 }
 
-
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

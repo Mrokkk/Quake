@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static int	miplevel;
 
 float		scale_for_mip;
-int			screenwidth;
 int			ubasestep, errorterm, erroradjustup, erroradjustdown;
 int			vstartscan;
 
@@ -195,7 +194,7 @@ void D_DrawSurfaces (void)
 			d_zistepv = s->d_zistepv;
 			d_ziorigin = s->d_ziorigin;
 
-			D_DrawSolidSurface (s, (int)s->data & 0xFF);
+			D_DrawSolidSurface (s, (long)s->data & 0xFF);
 			D_DrawZSpans (s->spans);
 		}
 	}
@@ -329,3 +328,4 @@ void D_DrawSurfaces (void)
 	}
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

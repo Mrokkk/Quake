@@ -1579,8 +1579,6 @@ void PF_WriteEntity (void)
 
 //=============================================================================
 
-int SV_ModelIndex (char *name);
-
 void PF_makestatic (void)
 {
 	edict_t	*ent;
@@ -1932,3 +1930,4 @@ PF_setspawnparms
 builtin_t *pr_builtins = pr_builtin;
 int pr_numbuiltins = sizeof(pr_builtin)/sizeof(pr_builtin[0]);
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

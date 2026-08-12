@@ -87,6 +87,7 @@ void Memory_Init (void *buf, int size);
 
 void Z_Free (void *ptr);
 void *Z_Malloc (int size);			// returns 0 filled memory
+void *Z_Realloc(void *ptr, int size);
 void *Z_TagMalloc (int size, int tag);
 
 void Z_DumpHeap (void);
@@ -127,5 +128,4 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name);
 
 void Cache_Report (void);
 
-
-
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

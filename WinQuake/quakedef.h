@@ -21,6 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //#define	GLTEST			// experimental stuff
 
+#ifndef __QUAKEDEF_H__
+#define __QUAKEDEF_H__
+
 #define	QUAKE_GAME			// as opposed to utilities
 
 #define	VERSION				1.09
@@ -74,9 +77,9 @@ void	VID_UnlockBuffer (void);
 #endif
 
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
-#define CACHE_SIZE	32		// used to align key data structures
+#define CACHE_SIZE	64		// used to align key data structures
 
-#define UNUSED(x)	(x = x)	// for pesky compiler / lint warnings
+#define UNUSED(x)	((void)(x))	// for pesky compiler / lint warnings
 
 #define	MINIMUM_MEMORY			0x550000
 #define	MINIMUM_MEMORY_LEVELPAK	(MINIMUM_MEMORY + 0x100000)
@@ -333,3 +336,7 @@ extern	cvar_t	chase_active;
 void Chase_Init (void);
 void Chase_Reset (void);
 void Chase_Update (void);
+
+#endif // __QUAKEDEF_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

@@ -21,13 +21,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <sys/param.h>
-#include <sys/ioctl.h>
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/param.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #ifdef __sun__
 #include <sys/filio.h>
@@ -412,3 +413,4 @@ int UDP_SetSocketPort (struct qsockaddr *addr, int port)
 }
 
 //=============================================================================
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :
