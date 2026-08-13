@@ -46,6 +46,7 @@ qpic_t		*scr_net;
 qpic_t		*scr_turtle;
 
 int			scr_fullupdate;
+int			scr_scaling, scr_xoff, scr_yoff;
 
 int			clearconsole;
 int			clearnotify;
@@ -220,10 +221,17 @@ Internal use only
 static void SCR_CalcRefdef (void)
 {
 	vrect_t		vrect;
-	float		size;
+	float		size, scale, scalex, scaley;
 
 	scr_fullupdate = 0;		// force a background redraw
 	vid.recalc_refdef = 0;
+
+	scalex = (float)(vid.width) / SCREEN_WIDTH;
+	scaley = (float)(vid.height) / SCREEN_HEIGHT;
+	scale = Q_MIN(scalex, scaley);
+	scr_scaling = (int)scale;
+	scr_xoff = (vid.width - scr_scaling * SCREEN_WIDTH) / 2;
+	scr_yoff = (vid.height - scr_scaling * SCREEN_HEIGHT) / 2;
 
 // force the status bar to redraw
 	Sbar_Changed ();
@@ -254,9 +262,9 @@ static void SCR_CalcRefdef (void)
 	if (size >= 120)
 		sb_lines = 0;		// no status bar at all
 	else if (size >= 110)
-		sb_lines = 24;		// no inventory
+		sb_lines = 24 * scr_scaling;		// no inventory
 	else
-		sb_lines = 24+16+8;
+		sb_lines = (24 + 16 + 8) * scr_scaling;
 
 // these calculations mirror those in R_Init() for r_refdef, but take no
 // account of water warping

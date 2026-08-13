@@ -24,10 +24,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 Q_BEGIN_DECLS
 
+// Size of virtual screen used for drawing UI
+#define SCREEN_WIDTH	320
+#define SCREEN_HEIGHT	200
+
 void SCR_Init (void);
 
 void SCR_UpdateScreen (void);
-
 
 void SCR_SizeUp (void);
 void SCR_SizeDown (void);
@@ -43,6 +46,7 @@ extern	float		scr_con_current;
 extern	float		scr_conlines;		// lines of console to display
 
 extern	int			scr_fullupdate;	// set to 0 to force full redraw
+extern	int			scr_scaling, scr_xoff, scr_yoff;
 extern	int			sb_lines;
 
 extern	int			clearnotify;	// set to 0 whenever notify text is drawn

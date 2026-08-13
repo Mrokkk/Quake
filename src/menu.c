@@ -26,7 +26,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void (*vid_menudrawfn)(void);
 void (*vid_menukeyfn)(int key);
 
-enum {m_none, m_main, m_singleplayer, m_load, m_save, m_multiplayer, m_setup, m_net, m_options, m_video, m_keys, m_help, m_quit, m_serialconfig, m_modemconfig, m_lanconfig, m_gameoptions, m_search, m_slist} m_state;
+enum
+{
+	m_none,
+	m_main,
+	m_singleplayer,
+	m_load,
+	m_save,
+	m_multiplayer,
+	m_setup,
+	m_net,
+	m_options,
+	m_video,
+	m_keys,
+	m_help,
+	m_quit,
+	m_serialconfig,
+	m_modemconfig,
+	m_lanconfig,
+	m_gameoptions,
+	m_search,
+	m_slist
+} m_state;
 
 void M_Menu_Main_f (void);
 	void M_Menu_SinglePlayer_f (void);
@@ -109,9 +130,9 @@ M_DrawCharacter
 Draws one solid graphics character
 ================
 */
-void M_DrawCharacter (int cx, int line, int num)
+void M_DrawCharacter (int cx, int cy, int num)
 {
-	Draw_Character ( cx + ((vid.width - 320)>>1), line + ((vid.height - 200) >> 1), num);
+	Draw_CharacterScaled ( cx * scr_scaling + scr_xoff, cy * scr_scaling + scr_yoff, scr_scaling, num);
 }
 
 void M_Print (int cx, int cy, char *str)
@@ -136,12 +157,12 @@ void M_PrintWhite (int cx, int cy, char *str)
 
 void M_DrawTransPic (int x, int y, qpic_t *pic)
 {
-	Draw_TransPic (x + ((vid.width - 320) >> 1), y + ((vid.height - 200) >> 1), pic);
+	Draw_TransPicScaled (x * scr_scaling + scr_xoff, y * scr_scaling + scr_yoff, scr_scaling, pic);
 }
 
 void M_DrawPic (int x, int y, qpic_t *pic)
 {
-	Draw_Pic (x + ((vid.width - 320) >> 1), y + ((vid.height - 200) >> 1), pic);
+	Draw_TransPicScaled (x * scr_scaling + scr_xoff, y * scr_scaling + scr_yoff, scr_scaling, pic);
 }
 
 byte identityTable[256];
@@ -174,7 +195,7 @@ void M_BuildTranslationTable(int top, int bottom)
 
 void M_DrawTransPicTranslate (int x, int y, qpic_t *pic)
 {
-	Draw_TransPicTranslate (x + ((vid.width - 320)>>1), y, pic, translationTable);
+	Draw_TransPicTranslate (x + ((vid.width - SCREEN_WIDTH)>>1), y, pic, translationTable);
 }
 
 
@@ -274,7 +295,6 @@ void M_ToggleMenu_f (void)
 int	m_main_cursor;
 #define	MAIN_ITEMS	5
 
-
 void M_Menu_Main_f (void)
 {
 	if (key_dest != key_menu)
@@ -295,7 +315,7 @@ void M_Main_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/ttl_main.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawTransPic ((SCREEN_WIDTH - p->width) / 2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mainmenu.lmp") );
 
 	f = (int)(host_time * 10)%6;
@@ -378,7 +398,7 @@ void M_SinglePlayer_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/ttl_sgl.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/sp_menu.lmp") );
 
 	f = (int)(host_time * 10)%6;
@@ -501,7 +521,7 @@ void M_Load_Draw (void)
 	qpic_t	*p;
 
 	p = Draw_CachePic ("gfx/p_load.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 
 	for (i=0 ; i< MAX_SAVEGAMES; i++)
 		M_Print (16, 32 + 8*i, m_filenames[i]);
@@ -517,7 +537,7 @@ void M_Save_Draw (void)
 	qpic_t	*p;
 
 	p = Draw_CachePic ("gfx/p_save.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 
 	for (i=0 ; i<MAX_SAVEGAMES ; i++)
 		M_Print (16, 32 + 8*i, m_filenames[i]);
@@ -623,7 +643,7 @@ void M_MultiPlayer_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mp_menu.lmp") );
 
 	f = (int)(host_time * 10)%6;
@@ -632,7 +652,7 @@ void M_MultiPlayer_Draw (void)
 
 	if (serialAvailable || ipxAvailable || tcpipAvailable)
 		return;
-	M_PrintWhite ((320/2) - ((27*8)/2), 148, "No Communications Available");
+	M_PrintWhite ((SCREEN_WIDTH/2) - ((27*8)/2), 148, "No Communications Available");
 }
 
 
@@ -710,7 +730,7 @@ void M_Setup_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 
 	M_Print (64, 40, "Hostname");
 	M_DrawTextBox (160, 32, 16, 1);
@@ -903,7 +923,7 @@ void M_Net_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 
 	f = 32;
 
@@ -962,7 +982,7 @@ void M_Net_Draw (void)
 		M_DrawTransPic (72, f, p);
 	}
 
-	f = (320-26*8)/2;
+	f = (SCREEN_WIDTH-26*8)/2;
 	M_DrawTextBox (f, 134, 24, 4);
 	f += 8;
 	M_Print (f, 142, net_helpMessage[m_net_cursor*4+0]);
@@ -1182,7 +1202,7 @@ void M_Options_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_option.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 
 	M_Print (16, 32, "    Customize controls");
 	M_Print (16, 40, "         Go to console");
@@ -1232,7 +1252,7 @@ void M_Options_Draw (void)
 #endif
 
 // cursor
-	M_DrawCharacter (200, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
+	M_DrawCharacter (SCREEN_HEIGHT, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
 }
 
 
@@ -1401,7 +1421,7 @@ void M_Keys_Draw (void)
 	qpic_t	*p;
 
 	p = Draw_CachePic ("gfx/ttl_cstm.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 
 	if (bind_grab)
 		M_Print (12, 32, "Press a key or button for this action");
@@ -1706,10 +1726,10 @@ void M_Quit_Draw (void)
 	M_PrintWhite (16, 180, "reserved. Press y to exit\n");
 #else
 	M_DrawTextBox (56, 76, 24, 4);
-	M_Print (64, 84,  quitMessage[msgNumber*4+0]);
-	M_Print (64, 92,  quitMessage[msgNumber*4+1]);
-	M_Print (64, 100, quitMessage[msgNumber*4+2]);
-	M_Print (64, 108, quitMessage[msgNumber*4+3]);
+	M_Print (64, 84 + 0 * 8, quitMessage[msgNumber*4+0]);
+	M_Print (64, 84 + 1 * 8, quitMessage[msgNumber*4+1]);
+	M_Print (64, 84 + 2 * 8, quitMessage[msgNumber*4+2]);
+	M_Print (64, 84 + 3 * 8, quitMessage[msgNumber*4+3]);
 #endif
 }
 
@@ -1780,7 +1800,7 @@ void M_SerialConfig_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	basex = (320-p->width)/2;
+	basex = (SCREEN_WIDTH-p->width)/2;
 	M_DrawPic (basex, 4, p);
 
 	if (StartingGame)
@@ -2030,7 +2050,7 @@ void M_ModemConfig_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	basex = (320-p->width)/2;
+	basex = (SCREEN_WIDTH-p->width)/2;
 	M_DrawPic (basex, 4, p);
 	basex += 8;
 
@@ -2216,7 +2236,7 @@ void M_LanConfig_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	basex = (320-p->width)/2;
+	basex = (SCREEN_WIDTH-p->width)/2;
 	M_DrawPic (basex, 4, p);
 
 	if (StartingGame)
@@ -2552,7 +2572,7 @@ void M_GameOptions_Draw (void)
 
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 
 	M_DrawTextBox (152, 32, 10, 1);
 	M_Print (160, 40, "begin game");
@@ -2654,7 +2674,7 @@ void M_GameOptions_Draw (void)
 	{
 		if ((realtime - m_serverInfoMessageTime) < 5.0)
 		{
-			x = (320-26*8)/2;
+			x = (SCREEN_WIDTH-26*8)/2;
 			M_DrawTextBox (x, 138, 24, 4);
 			x += 8;
 			M_Print (x, 146, "  More than 4 players   ");
@@ -2858,8 +2878,8 @@ void M_Search_Draw (void)
 	int x;
 
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
-	x = (320/2) - ((12*8)/2) + 4;
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	x = (SCREEN_WIDTH/2) - ((12*8)/2) + 4;
 	M_DrawTextBox (x-8, 32, 12, 1);
 	M_Print (x, 40, "Searching...");
 
@@ -2881,7 +2901,7 @@ void M_Search_Draw (void)
 		return;
 	}
 
-	M_PrintWhite ((320/2) - ((22*8)/2), 64, "No Quake servers found");
+	M_PrintWhite ((SCREEN_WIDTH/2) - ((22*8)/2), 64, "No Quake servers found");
 	if ((realtime - searchCompleteTime) < 3.0)
 		return;
 
@@ -2936,7 +2956,7 @@ void M_ServerList_Draw (void)
 	}
 
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
 	for (n = 0; n < hostCacheCount; n++)
 	{
 		if (hostcache[n].maxusers)
@@ -3229,3 +3249,5 @@ void M_ConfigureNetSubsystem(void)
 	if (IPXConfig || TCPIPConfig)
 		net_hostport = lanConfig_port;
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

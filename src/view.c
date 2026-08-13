@@ -58,7 +58,7 @@ cvar_t	v_ipitch_level = {"v_ipitch_level", "0.3", false};
 
 cvar_t	v_idlescale = {"v_idlescale", "0", false};
 
-cvar_t	crosshair = {"crosshair", "0", true};
+cvar_t	crosshair = {"crosshair", "1", true};
 cvar_t	cl_crossx = {"cl_crossx", "0", false};
 cvar_t	cl_crossy = {"cl_crossy", "0", false};
 
@@ -1055,8 +1055,14 @@ void V_RenderView (void)
 
 #ifndef GLQUAKE
 	if (crosshair.value)
-		Draw_Character (scr_vrect.x + scr_vrect.width/2 + cl_crossx.value, 
-			scr_vrect.y + scr_vrect.height/2 + cl_crossy.value, '+');
+	{
+		// TODO: add custom crosshair
+		Draw_CharacterScaled (
+			scr_vrect.x + scr_vrect.width/2 + cl_crossx.value - 4 * scr_scaling,
+			scr_vrect.y + scr_vrect.height/2 + cl_crossy.value - 4 * scr_scaling,
+			scr_scaling,
+			'+');
+	}
 #endif
 		
 }
@@ -1110,4 +1116,4 @@ void V_Init (void)
 	Cvar_RegisterVariable (&v_gamma);
 }
 
-
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

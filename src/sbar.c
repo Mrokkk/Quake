@@ -260,9 +260,9 @@ Sbar_DrawPic
 void Sbar_DrawPic (int x, int y, qpic_t *pic)
 {
 	if (cl.gametype == GAME_DEATHMATCH)
-		Draw_Pic (x /* + ((vid.width - 320)>>1)*/, y + (vid.height-SBAR_HEIGHT), pic);
+		Draw_TransPicScaled (x, y + (vid.height - SBAR_HEIGHT * scr_scaling), scr_scaling, pic);
 	else
-		Draw_Pic (x + ((vid.width - 320)>>1), y + (vid.height-SBAR_HEIGHT), pic);
+		Draw_TransPicScaled (x * scr_scaling + scr_xoff, y + (vid.height-SBAR_HEIGHT * scr_scaling), scr_scaling, pic);
 }
 
 /*
@@ -273,9 +273,9 @@ Sbar_DrawTransPic
 void Sbar_DrawTransPic (int x, int y, qpic_t *pic)
 {
 	if (cl.gametype == GAME_DEATHMATCH)
-		Draw_TransPic (x /*+ ((vid.width - 320)>>1)*/, y + (vid.height-SBAR_HEIGHT), pic);
+		Draw_TransPicScaled (x, y + (vid.height - SBAR_HEIGHT * scr_scaling), scr_scaling, pic);
 	else
-		Draw_TransPic (x + ((vid.width - 320)>>1), y + (vid.height-SBAR_HEIGHT), pic);
+		Draw_TransPicScaled (x * scr_scaling + scr_xoff, y + (vid.height-SBAR_HEIGHT * scr_scaling), scr_scaling, pic);
 }
 
 /*
@@ -1321,3 +1321,5 @@ void Sbar_FinaleOverlay (void)
 	pic = Draw_CachePic ("gfx/finale.lmp");
 	Draw_TransPic ( (vid.width-pic->width)/2, 16, pic);
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

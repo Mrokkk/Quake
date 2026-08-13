@@ -88,7 +88,7 @@ qpic_t	*Draw_CachePic (char *path)
 // load the pic from disk
 //
 	COM_LoadCacheFile (path, &pic->cache);
-	
+
 	dat = (qpic_t *)pic->cache.data;
 	if (!dat)
 	{
@@ -100,8 +100,6 @@ qpic_t	*Draw_CachePic (char *path)
 	return dat;
 }
 
-
-
 /*
 ===============
 Draw_Init
@@ -109,8 +107,6 @@ Draw_Init
 */
 void Draw_Init (void)
 {
-	int		i;
-
 	draw_chars = W_GetLumpName ("conchars");
 	draw_disc = W_GetLumpName ("disc");
 	draw_backtile = W_GetLumpName ("backtile");
@@ -120,8 +116,6 @@ void Draw_Init (void)
 	r_rectdesc.ptexbytes = draw_backtile->data;
 	r_rectdesc.rowbytes = draw_backtile->width;
 }
-
-
 
 /*
 ================
@@ -140,7 +134,7 @@ void Draw_Character (int x, int y, int num)
 	int				drawline;	
 	int				row, col;
 
-	num &= 255;
+	num &= 0xff;
 	
 	if (y <= -8)
 		return;			// totally off screen
@@ -164,7 +158,6 @@ void Draw_Character (int x, int y, int num)
 	}
 	else
 		drawline = 8;
-
 
 	if (r_pixbytes == 1)
 	{
@@ -220,6 +213,64 @@ void Draw_Character (int x, int y, int num)
 			source += 128;
 			pusdest += (vid.conrowbytes >> 1);
 		}
+	}
+}
+
+void Draw_CharacterScaled (int x, int y, int scale, int num)
+{
+	byte			*dest, *source, pixel;
+	int				drawline, source_drawline;
+	int				row, col, i, j, k;
+
+	num &= 0xff;
+
+	if (y <= -8 * scale)
+		return;			// totally off screen
+
+#ifdef PARANOID
+	if (y > vid.height - 8 || x < 0 || x > vid.width - 8)
+		Sys_Error ("Con_DrawCharacter: (%i, %i)", x, y);
+	if (num < 0 || num > 255)
+		Sys_Error ("Con_DrawCharacter: char %i", num);
+#endif
+
+	row = num>>4;
+	col = num&15;
+	source = draw_chars + (row<<10) + (col<<3);
+
+	if (y < 0)
+	{	// clipped
+		drawline = 8 * scale + y;
+		source_drawline = 8 + y;
+		source -= 128 * y / scale;
+		y = 0;
+	}
+	else
+	{
+		source_drawline = 8;
+		drawline = 8;
+	}
+
+	dest = vid.conbuffer + y*vid.conrowbytes + x;
+
+	while (source_drawline--)
+	{
+		for (i = 0; i < scale; ++i)
+		{
+			for (k = 0; k < 8; ++k)
+			{
+				if (!(pixel = source[k]))
+				{
+					continue;
+				}
+				for (j = 0; j < scale; ++j)
+				{
+					dest[k * scale + j] = pixel;
+				}
+			}
+			dest += vid.conrowbytes;
+		}
+		source += 128;
 	}
 }
 
@@ -418,6 +469,48 @@ void Draw_TransPic (int x, int y, qpic_t *pic)
 	}
 }
 
+/*
+=============
+Draw_TransPicScaled
+=============
+*/
+void Draw_TransPicScaled (int x, int y, int scale, qpic_t *pic)
+{
+	byte	*dest, *source, pixel;
+	int		h, w, i, j, k;
+
+	if (x < 0 || (unsigned)(x + pic->width * scale) > vid.width || y < 0 ||
+		 (unsigned)(y + pic->height * scale) > vid.height)
+	{
+		Sys_Error ("Draw_TransPic: bad coordinates: %u, %u\n", x, y);
+	}
+
+	w = pic->width;
+	h = pic->height;
+
+	source = pic->data;
+	dest = vid.buffer + y * vid.rowbytes + x;
+
+	while (h--)
+	{
+		for (i = 0; i < scale; ++i)
+		{
+			for (k = 0; k < w; ++k)
+			{
+				if ((pixel = source[k]) == TRANSPARENT_COLOR)
+				{
+					continue;
+				}
+				for (j = 0; j < scale; ++j)
+				{
+					dest[k * scale + j] = pixel;
+				}
+			}
+			dest += vid.rowbytes;
+		}
+		source += w;
+	}
+}
 
 /*
 =============
@@ -843,7 +936,7 @@ Draw_FadeScreen
 */
 void Draw_FadeScreen (void)
 {
-	int			x,y;
+	size_t			x,y;
 	byte		*pbuf;
 
 	VID_UnlockBuffer ();
@@ -900,3 +993,4 @@ void Draw_EndDisc (void)
 	D_EndDirectRect (vid.width - 24, 0, 24, 24);
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :
