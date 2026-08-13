@@ -116,7 +116,7 @@ add_executable(${PROJECT_NAME}
     src/sv_move.c
     src/sv_phys.c
     src/sv_user.c
-    src/sys_linux.c
+    src/sys_unix.c
     src/view.c
     src/wad.c
     src/world.c
