@@ -290,26 +290,19 @@ static struct backtrace_state *backtrace_state;
 
 #endif
 
+#ifdef __linux__
+#	define SIGNAME(s)	sigabbrev_np(s)
+#elif __unix__
+#	define SIGNAME(s)	sys_signame[s]
+#else
+#	define SIGNAME(s)	"(unknown)"
+#endif
+
 static void SignalHandler(int sig, siginfo_t *info, void *context)
 {
-	ucontext_t *m = (ucontext_t *)context;
+	UNUSED(context);
 
-	Sys_Printf("Received SIG%s at %p\n",
-#ifdef __linux__
-		sigabbrev_np(sig),
-#else
-		sys_signame[sig];
-#endif
-#ifdef __x86_64__
-		(void *)m->uc_mcontext.gregs[REG_RIP]
-#elif defined(__i386__)
-		(void *)m->uc_mcontext.gregs[REG_EIP]
-#else
-		NULL
-#endif
-	);
-
-	Sys_Printf("Reason: ");
+	Sys_Printf("Received SIG%s\nReason: ", SIGNAME(sig));
 
 	switch (sig)
 	{
@@ -353,12 +346,14 @@ static void SignalHandler(int sig, siginfo_t *info, void *context)
 				case SEGV_ACCERR:
 					Sys_Printf("invalid permissions for object at %p\n", info->si_addr);
 					break;
+#ifdef __linux__
 				case SEGV_BNDERR:
 					Sys_Printf("failed address bound checks for %p\n", info->si_addr);
 					break;
 				case SEGV_PKUERR:
 					Sys_Printf("access to %p denied by memory protection keys\n", info->si_addr);
 					break;
+#endif
 				default:
 					goto unknown;
 			}
@@ -375,12 +370,14 @@ static void SignalHandler(int sig, siginfo_t *info, void *context)
 				case BUS_OBJERR:
 					Sys_Printf("object-specific hardware error for address %p\n", info->si_addr);
 					break;
+#ifdef __linux__
 				case BUS_MCEERR_AR:
 					Sys_Printf("hardware memory error consumed on a machine check\n");
 					break;
 				case BUS_MCEERR_AO:
 					Sys_Printf("hardware memory error detected in process but not consumed\n");
 					break;
+#endif
 				default:
 					goto unknown;
 			}
