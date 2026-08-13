@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // vid.h -- video driver defs
 
+#ifndef __VID_H__
+#define __VID_H__
+
+Q_BEGIN_DECLS
+
 #define VID_CBITS	6
 #define VID_GRADES	(1 << VID_CBITS)
 
@@ -83,3 +88,8 @@ int VID_SetMode (int modenum, unsigned char *palette);
 void VID_HandlePause (qboolean pause);
 // called only on Win32, when pause happens, so the mouse can be released
 
+Q_END_DECLS
+
+#endif // __VID_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

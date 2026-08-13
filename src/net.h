@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // net.h -- quake's interface to the networking layer
 
+#ifndef __NET_H__
+#define __NET_H__
+
+Q_BEGIN_DECLS
+
 struct qsockaddr
 {
 	short sa_family;
@@ -335,3 +340,9 @@ extern	qboolean	slistSilent;
 extern	qboolean	slistLocal;
 
 void NET_Slist_f (void);
+
+Q_END_DECLS
+
+#endif // __NET_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

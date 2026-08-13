@@ -17,9 +17,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-
 // draw.h -- these are the only functions outside the refresh allowed
 // to touch the vid buffer
+
+#ifndef __DRAW_H__
+#define __DRAW_H__
+
+Q_BEGIN_DECLS
 
 extern	qpic_t		*draw_disc;	// also used on sbar
 
@@ -38,3 +42,9 @@ void Draw_FadeScreen (void);
 void Draw_String (int x, int y, char *str);
 qpic_t *Draw_PicFromWad (char *name);
 qpic_t *Draw_CachePic (char *path);
+
+Q_END_DECLS
+
+#endif // __DRAW_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

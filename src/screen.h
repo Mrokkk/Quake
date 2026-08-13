@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // screen.h
 
+#ifndef __SCREEN_H__
+#define __SCREEN_H__
+
+Q_BEGIN_DECLS
+
 void SCR_Init (void);
 
 void SCR_UpdateScreen (void);
@@ -55,3 +60,9 @@ extern	int			scr_copyeverything;
 extern qboolean		block_drawing;
 
 void SCR_UpdateWholeScreen (void);
+
+Q_END_DECLS
+
+#endif // __SCREEN_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

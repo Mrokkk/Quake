@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __SOUND__
 #define __SOUND__
 
+Q_BEGIN_DECLS
+
 #define DEFAULT_SOUND_PACKET_VOLUME 255
 #define DEFAULT_SOUND_PACKET_ATTENUATION 1.0
 
@@ -171,4 +173,8 @@ void SNDDMA_Submit(void);
 void S_AmbientOff (void);
 void S_AmbientOn (void);
 
+Q_END_DECLS
+
 #endif
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

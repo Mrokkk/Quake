@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // winquake.h: Win32-specific Quake header file
 
+#ifndef __WINQUAKE_H__
+#define __WINQUAKE_H__
+
+Q_BEGIN_DECLS
+
 #pragma warning( disable : 4229 )  // mgraph gets this
 
 #include <windows.h>
@@ -112,3 +117,9 @@ struct hostent FAR * (PASCAL FAR *pgethostbyaddr)(const char FAR * addr,
 												  int len, int type);
 int (PASCAL FAR *pgetsockname)(SOCKET s, struct sockaddr FAR *name,
 							   int FAR * namelen);
+
+Q_END_DECLS
+
+#endif // __WINQUAKE_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

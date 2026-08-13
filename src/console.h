@@ -18,6 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#ifndef __CONSOLE_H__
+#define __CONSOLE_H__
+
+Q_BEGIN_DECLS
+
 //
 // console
 //
@@ -44,3 +49,9 @@ void Con_ToggleConsole_f (void);
 
 void Con_NotifyBox (char *text);	// during startup for sound / cd warnings
 
+
+Q_END_DECLS
+
+#endif // __CONSOLE_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

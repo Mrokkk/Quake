@@ -19,6 +19,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /* crc.h */
 
+#ifndef __CRC_H__
+#define __CRC_H__
+
+Q_BEGIN_DECLS
+
 void CRC_Init(unsigned short *crcvalue);
 void CRC_ProcessByte(unsigned short *crcvalue, byte data);
 unsigned short CRC_Value(unsigned short crcvalue);
+
+Q_END_DECLS
+
+#endif // __CRC_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

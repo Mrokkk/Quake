@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // net_loop.h
 
+#ifndef __NET_LOOP_H__
+#define __NET_LOOP_H__
+
+Q_BEGIN_DECLS
+
 int			Loop_Init (void);
 void		Loop_Listen (qboolean state);
 void		Loop_SearchForHosts (qboolean xmit);
@@ -31,3 +36,9 @@ qboolean	Loop_CanSendMessage (qsocket_t *sock);
 qboolean	Loop_CanSendUnreliableMessage (qsocket_t *sock);
 void		Loop_Close (qsocket_t *sock);
 void		Loop_Shutdown (void);
+
+Q_END_DECLS
+
+#endif // __NET_LOOP_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

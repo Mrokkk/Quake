@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // conproc.h
 
+#ifndef __CONPROC_H__
+#define __CONPROC_H__
+
+Q_BEGIN_DECLS
+
 #define CCOM_WRITE_TEXT		0x2
 // Param1 : Text
 
@@ -35,3 +40,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void InitConProc (HANDLE hFile, HANDLE heventParent, HANDLE heventChild);
 void DeinitConProc (void);
 
+Q_END_DECLS
+
+#endif // __CONPROC_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

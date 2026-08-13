@@ -18,6 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#ifndef __BSPFILE_H__
+#define __BSPFILE_H__
+
+Q_BEGIN_DECLS
 
 // upper design bounds
 
@@ -321,3 +325,9 @@ void 	GetVectorForKey (entity_t *ent, char *key, vec3_t vec);
 epair_t *ParseEpair (void);
 
 #endif
+
+Q_END_DECLS
+
+#endif // __BSPFILE_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

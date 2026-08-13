@@ -17,6 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
+#ifndef __ZONE_H__
+#define __ZONE_H__
+
+Q_BEGIN_DECLS
+
 /*
  memory allocation
 
@@ -127,5 +133,9 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name);
 // wasn't enough room.
 
 void Cache_Report (void);
+
+Q_END_DECLS
+
+#endif // __ZONE_H__
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

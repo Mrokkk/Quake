@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // net_wins.h
 
+#ifndef __NET_WINS_H__
+#define __NET_WINS_H__
+
+Q_BEGIN_DECLS
+
 int  WINS_Init (void);
 void WINS_Shutdown (void);
 void WINS_Listen (qboolean state);
@@ -37,3 +42,9 @@ int  WINS_GetAddrFromName (char *name, struct qsockaddr *addr);
 int  WINS_AddrCompare (struct qsockaddr *addr1, struct qsockaddr *addr2);
 int  WINS_GetSocketPort (struct qsockaddr *addr);
 int  WINS_SetSocketPort (struct qsockaddr *addr, int port);
+
+Q_END_DECLS
+
+#endif // __NET_WINS_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

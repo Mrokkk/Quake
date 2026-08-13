@@ -21,10 +21,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_shared.h: general refresh-related stuff shared between the refresh and the
 // driver
 
-// FIXME: clean up and move into d_iface.h
+#ifndef __R_SHARED_H__
+#define __R_SHARED_H__
 
-#ifndef _R_SHARED_H_
-#define _R_SHARED_H_
+Q_BEGIN_DECLS
+
+// FIXME: clean up and move into d_iface.h
 
 #define	MAXVERTS	16					// max points in a surface polygon
 #define MAXWORKINGVERTS	(MAXVERTS+4)	// max points in an intermediate
@@ -148,6 +150,10 @@ typedef struct edge_s
 	medge_t			*owner;
 } edge_t;
 
-#endif	// _R_SHARED_H_
-
 #endif	// GLQUAKE
+
+Q_END_DECLS
+
+#endif // __R_SHARED_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

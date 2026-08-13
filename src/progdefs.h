@@ -17,8 +17,20 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
+#ifndef __PROGDEFS_H__
+#define __PROGDEFS_H__
+
+Q_BEGIN_DECLS
+
 #ifdef QUAKE2
 #include "progdefs.q2"
 #else
 #include "progdefs.q1"
 #endif
+
+Q_END_DECLS
+
+#endif // __PROGDEFS_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

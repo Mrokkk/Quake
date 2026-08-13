@@ -53,6 +53,11 @@ Cvars are restricted from having the same names as commands to keep this
 interface from being ambiguous.
 */
 
+#ifndef __CVAR_H__
+#define __CVAR_H__
+
+Q_BEGIN_DECLS
+
 typedef struct cvar_s
 {
 	char	*name;
@@ -95,3 +100,9 @@ void 	Cvar_WriteVariables (FILE *f);
 cvar_t *Cvar_FindVar (char *var_name);
 
 extern cvar_t	*cvar_vars;
+
+Q_END_DECLS
+
+#endif // __CVAR_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

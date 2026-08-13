@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __MODEL__
 #define __MODEL__
 
+Q_BEGIN_DECLS
+
 #include "modelgen.h"
 #include "spritegn.h"
 
@@ -374,4 +376,8 @@ void	Mod_TouchModel (char *name);
 mleaf_t *Mod_PointInLeaf (float *p, model_t *model);
 byte	*Mod_LeafPVS (mleaf_t *leaf, model_t *model);
 
+Q_END_DECLS
+
 #endif	// __MODEL__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

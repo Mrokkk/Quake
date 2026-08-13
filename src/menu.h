@@ -18,6 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#ifndef __MENU_H__
+#define __MENU_H__
+
+Q_BEGIN_DECLS
+
 //
 // the net drivers should just set the apropriate bits in m_activenet,
 // instead of having the menu code look through their internal tables
@@ -35,4 +40,8 @@ void M_Keydown (int key);
 void M_Draw (void);
 void M_ToggleMenu_f (void);
 
+Q_END_DECLS
 
+#endif // __MENU_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

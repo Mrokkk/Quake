@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_local.h -- private refresh defs
 
+#ifndef __R_LOCAL_H__
+#define __R_LOCAL_H__
+
+Q_BEGIN_DECLS
+
 #ifndef GLQUAKE
 #include "r_shared.h"
 
@@ -303,3 +308,9 @@ void R_SplitEntityOnNode2 (mnode_t *node);
 void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
 
 #endif
+
+Q_END_DECLS
+
+#endif // __R_LOCAL_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

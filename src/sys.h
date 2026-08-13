@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sys.h -- non-portable functions
 
+#ifndef __SYS_H__
+#define __SYS_H__
+
+Q_BEGIN_DECLS
+
 //
 // file IO
 //
@@ -91,3 +96,9 @@ void Sys_HighFPPrecision (void);
 void Sys_SetFPCW (void);
 
 void Sys_StacktraceDump (void);
+
+Q_END_DECLS
+
+#endif // __SYS_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

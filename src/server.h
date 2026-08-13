@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // server.h
 
+#ifndef __SERVER_H__
+#define __SERVER_H__
+
+Q_BEGIN_DECLS
+
 typedef struct
 {
 	int			maxclients;
@@ -255,3 +260,9 @@ void SV_SpawnServer (char *server, char *startspot);
 #else
 void SV_SpawnServer (char *server);
 #endif
+
+Q_END_DECLS
+
+#endif // __SERVER_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

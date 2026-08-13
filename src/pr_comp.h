@@ -17,8 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-
 // this file is shared by quake and qcc
+
+#ifndef __PR_COMP_H__
+#define __PR_COMP_H__
+
+Q_BEGIN_DECLS
 
 typedef int	func_t;
 typedef int	string_t;
@@ -178,3 +182,8 @@ typedef struct
 	int		entityfields;
 } dprograms_t;
 
+Q_END_DECLS
+
+#endif // __PR_COMP_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

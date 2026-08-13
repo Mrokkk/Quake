@@ -48,6 +48,8 @@ if(SANITIZE)
     add_compile_options(-fsanitize=address,undefined)
 endif()
 
+add_compile_options(-include "${PROJECT_SOURCE_DIR}/src/cpp_interop.h")
+
 # Diagnostics
 add_compile_options(-Wall -Wextra -Wno-trigraphs -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-missing-field-initializers)
 

@@ -21,6 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // modelgen.h: header file for model generation program
 //
 
+#ifndef __MODELGEN_H__
+#define __MODELGEN_H__
+
+Q_BEGIN_DECLS
+
 // *********************************************************
 // * This file must be identical in the modelgen directory *
 // * and in the Quake directory, because it's used to      *
@@ -132,3 +137,8 @@ typedef struct {
 #define IDPOLYHEADER	(('O'<<24)+('P'<<16)+('D'<<8)+'I')
 														// little-endian "IDPO"
 
+Q_END_DECLS
+
+#endif // __MODELGEN_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

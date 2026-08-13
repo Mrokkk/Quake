@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // mathlib.h
 
+#ifndef __MATHLIB_H__
+#define __MATHLIB_H__
+
+Q_BEGIN_DECLS
+
 typedef float vec_t;
 typedef vec_t vec3_t[3];
 typedef vec_t vec5_t[5];
@@ -87,3 +92,9 @@ float	anglemod(float a);
 	)										\
 	:										\
 		BoxOnPlaneSide( (emins), (emaxs), (p)))
+
+Q_END_DECLS
+
+#endif // __MATHLIB_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

@@ -17,8 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-
 // refresh.h -- public interface to refresh functions
+
+#ifndef __RENDER_H__
+#define __RENDER_H__
+
+Q_BEGIN_DECLS
 
 #define	MAXCLIPPLANES	11
 
@@ -155,3 +159,8 @@ void D_DeleteSurfaceCache (void);
 void D_InitCaches (void *buffer, int size);
 void R_SetVrect (vrect_t *pvrect, vrect_t *pvrectin, int lineadj);
 
+Q_END_DECLS
+
+#endif // __RENDER_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

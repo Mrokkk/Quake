@@ -17,12 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// disable data conversion warnings
 
-#pragma warning(disable : 4244)     // MIPS
-#pragma warning(disable : 4136)     // X86
-#pragma warning(disable : 4051)     // ALPHA
-  
+#ifndef __GLQUAKE2_H__
+#define __GLQUAKE2_H__
+
+Q_BEGIN_DECLS
+
 #include <windows.h>
 
 #include <gl\gl.h>
@@ -206,3 +206,9 @@ extern	int		gl_alpha_format;
 
 void R_TranslatePlayerSkin (int playernum);
 void GL_Bind (int texnum);
+
+Q_END_DECLS
+
+#endif // __GLQUAKE2_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // wad.h
 
+#ifndef __WAD_H__
+#define __WAD_H__
+
+Q_BEGIN_DECLS
+
 //===============
 //   TYPES
 //===============
@@ -73,3 +78,9 @@ void	*W_GetLumpName (char *name);
 void	*W_GetLumpNum (int num);
 
 void SwapPic (qpic_t *pic);
+
+Q_END_DECLS
+
+#endif // __WAD_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

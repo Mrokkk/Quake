@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __QUAKEDEF_H__
 #define __QUAKEDEF_H__
 
+Q_BEGIN_DECLS
+
 #define	QUAKE_GAME			// as opposed to utilities
 
 #define	VERSION				1.09
@@ -310,6 +312,8 @@ extern	cvar_t	chase_active;
 void Chase_Init (void);
 void Chase_Reset (void);
 void Chase_Update (void);
+
+Q_END_DECLS
 
 #endif // __QUAKEDEF_H__
 

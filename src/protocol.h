@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // protocol.h -- communications protocols
 
+#ifndef __PROTOCOL_H__
+#define __PROTOCOL_H__
+
+Q_BEGIN_DECLS
+
 #define	PROTOCOL_VERSION	15
 
 // if the high bit of the servercmd is set, the low bits are fast update flags:
@@ -165,3 +170,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define TE_IMPLOSION		14
 #define TE_RAILTRAIL		15
 #endif
+
+Q_END_DECLS
+
+#endif // __PROTOCOL_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

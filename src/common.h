@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+Q_BEGIN_DECLS
+
 #if !defined BYTE_DEFINED
 typedef unsigned char 		byte;
 #define BYTE_DEFINED 1
@@ -193,4 +195,8 @@ extern	struct cvar_s	registered;
 
 extern qboolean		standard_quake, rogue, hipnotic;
 
+Q_END_DECLS
+
 #endif // __COMMON_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

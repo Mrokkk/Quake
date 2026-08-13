@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // client.h
 
+#ifndef __CLIENT_H__
+#define __CLIENT_H__
+
+Q_BEGIN_DECLS
+
 typedef struct
 {
 	vec3_t	viewangles;
@@ -373,3 +378,9 @@ void V_SetContentsColor (int contents);
 //
 void CL_InitTEnts (void);
 void CL_SignonReply (void);
+
+Q_END_DECLS
+
+#endif // __CLIENT_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

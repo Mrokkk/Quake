@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // input.h -- external (non-keyboard) input devices
 
+#ifndef __INPUT_H__
+#define __INPUT_H__
+
+Q_BEGIN_DECLS
+
 void IN_Init (void);
 
 void IN_Shutdown (void);
@@ -32,3 +37,8 @@ void IN_Move (usercmd_t *cmd);
 void IN_ClearStates (void);
 // restores all button and position states to defaults
 
+Q_END_DECLS
+
+#endif // __INPUT_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

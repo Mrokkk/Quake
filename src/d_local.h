@@ -19,6 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // d_local.h:  private rasterization driver defs
 
+#ifndef __D_LOCAL_H__
+#define __D_LOCAL_H__
+
+Q_BEGIN_DECLS
+
 #include "r_shared.h"
 
 //
@@ -103,3 +108,8 @@ extern float	d_scalemip[3];
 
 extern void (*d_drawspans) (espan_t *pspan);
 
+Q_END_DECLS
+
+#endif // __D_LOCAL_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

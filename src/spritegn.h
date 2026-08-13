@@ -42,6 +42,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // <endrepeat>
 //-------------------------------------------------------
 
+#ifndef __SPRITEGN_H__
+#define __SPRITEGN_H__
+
+Q_BEGIN_DECLS
+
 #ifdef INCLUDELIBS
 
 #include <stdlib.h>
@@ -108,3 +113,8 @@ typedef struct {
 #define IDSPRITEHEADER	(('P'<<24)+('S'<<16)+('D'<<8)+'I')
 														// little-endian "IDSP"
 
+Q_END_DECLS
+
+#endif // __SPRITEGN_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

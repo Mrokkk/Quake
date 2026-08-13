@@ -19,6 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // net_dgrm.h
 
+#ifndef __NET_DGRM_H__
+#define __NET_DGRM_H__
+
+Q_BEGIN_DECLS
 
 int			Datagram_Init (void);
 void		Datagram_Listen (qboolean state);
@@ -32,3 +36,9 @@ qboolean	Datagram_CanSendMessage (qsocket_t *sock);
 qboolean	Datagram_CanSendUnreliableMessage (qsocket_t *sock);
 void		Datagram_Close (qsocket_t *sock);
 void		Datagram_Shutdown (void);
+
+Q_END_DECLS
+
+#endif // __NET_DGRM_H__
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :
