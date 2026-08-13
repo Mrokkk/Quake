@@ -684,8 +684,11 @@ void VID_SetPalette(unsigned char *palette)
 
 void VID_Shutdown(void)
 {
-	XAutoRepeatOn(x_disp);
-	XCloseDisplay(x_disp);
+	if (x_disp)
+	{
+		XAutoRepeatOn(x_disp);
+		XCloseDisplay(x_disp);
+	}
 }
 
 int XLateKey(XKeyEvent *ev)
