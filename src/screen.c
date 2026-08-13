@@ -32,7 +32,7 @@ float		scr_conlines;		// lines of console to display
 float		oldscreensize, oldfov;
 cvar_t		scr_viewsize = {"viewsize","100", true};
 cvar_t		scr_fov = {"fov","90"};	// 10 - 170
-cvar_t		scr_conspeed = {"scr_conspeed","300"};
+cvar_t		scr_conspeed = {"scr_conspeed","2000"};
 cvar_t		scr_centertime = {"scr_centertime","2"};
 cvar_t		scr_showram = {"showram","1"};
 cvar_t		scr_showturtle = {"showturtle","0"};
@@ -453,7 +453,7 @@ void SCR_SetUpToDrawConsole (void)
 // decide on the height of the console
 	con_forcedup = !cl.worldmodel || cls.signon != SIGNONS;
 
-	if (con_forcedup)
+	if (con_forcedup && 0)
 	{
 		scr_conlines = vid.height;		// full screen
 		scr_con_current = scr_conlines;
@@ -989,3 +989,5 @@ void SCR_UpdateWholeScreen (void)
 	scr_fullupdate = 0;
 	SCR_UpdateScreen ();
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

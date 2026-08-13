@@ -647,3 +647,4 @@ void Con_NotifyBox (char *text)
 	realtime = 0;				// put the cursor back to invisible
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :
