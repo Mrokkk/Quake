@@ -223,7 +223,7 @@ extern	edict_t		*sv_player;
 void SV_Init (void);
 
 void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
-void SV_StartSound (edict_t *entity, int channel, char *sample, int volume,
+void SV_StartSound (edict_t *entity, int channel, const char *sample, int volume,
     float attenuation);
 
 void SV_DropClient (qboolean crash);

@@ -136,10 +136,6 @@ char *pr_opnames[] =
 "BITOR"
 };
 
-char *PR_GlobalString (int ofs);
-char *PR_GlobalStringNoContents (int ofs);
-
-
 //=============================================================================
 
 /*
