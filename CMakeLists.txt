@@ -137,11 +137,11 @@ else()
     target_sources(${PROJECT_NAME} PUBLIC src/snd_null.c)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC m)
-
 if(SANITIZE)
     target_link_libraries(${PROJECT_NAME} PUBLIC asan ubsan)
 endif()
+
+target_link_libraries(${PROJECT_NAME} PUBLIC m)
 
 include(cmake/platform_${PLATFORM}.cmake)
 
