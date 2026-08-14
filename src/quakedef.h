@@ -60,7 +60,8 @@ void	VID_UnlockBuffer (void);
 
 #define CACHE_SIZE	64		// used to align key data structures
 
-#define UNUSED(x)	((void)(x))	// for pesky compiler / lint warnings
+#define UNUSED(x)			((void)(x))	// for pesky compiler / lint warnings
+#define PRINTF_FORMAT(fmt)	__attribute__((format(printf, fmt, fmt + 1)))
 
 #define	MINIMUM_MEMORY			0x550000
 #define	MINIMUM_MEMORY_LEVELPAK	(MINIMUM_MEMORY + 0x100000)

@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 Q_BEGIN_DECLS
 
 #if !defined BYTE_DEFINED
-typedef unsigned char 		byte;
+typedef unsigned char		byte;
 #define BYTE_DEFINED 1
 #endif
 
@@ -102,8 +102,8 @@ extern	qboolean		bigendien;
 
 extern	short	(*BigShort) (short l);
 extern	short	(*LittleShort) (short l);
-extern	int	(*BigLong) (int l);
-extern	int	(*LittleLong) (int l);
+extern	int		(*BigLong) (int l);
+extern	int		(*LittleLong) (int l);
 extern	float	(*BigFloat) (float l);
 extern	float	(*LittleFloat) (float l);
 
@@ -169,7 +169,7 @@ void COM_StripExtension (char *in, char *out);
 void COM_FileBase (char *in, char *out);
 void COM_DefaultExtension (char *path, char *extension);
 
-char	*va(char *format, ...);
+char	*va(char *format, ...) PRINTF_FORMAT(1);
 // does a varargs printf into a temp buffer
 
 
@@ -189,7 +189,6 @@ byte *COM_LoadStackFile (char *path, void *buffer, int bufsize);
 byte *COM_LoadTempFile (char *path);
 byte *COM_LoadHunkFile (char *path);
 void COM_LoadCacheFile (char *path, struct cache_user_s *cu);
-
 
 extern	struct cvar_s	registered;
 

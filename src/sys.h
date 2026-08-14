@@ -46,7 +46,7 @@ void Sys_mkdir (char *path);
 //
 void Sys_DebugLog(char *file, char *fmt, ...);
 
-void Sys_Error (char *error, ...);
+void Sys_Error (char *error, ...) PRINTF_FORMAT(1);
 // an error will cause the entire program to exit
 
 #define Q_COLOR_ESCAPE	'^'
@@ -75,7 +75,7 @@ void Sys_Error (char *error, ...);
 #define S_COLOR_ORANGE	"^8"
 #define S_COLOR_GREY	"^9"
 
-void Sys_Printf (char *fmt, ...);
+void Sys_Printf (char *fmt, ...) PRINTF_FORMAT(1);
 // send text to the console
 
 void Sys_Quit (void);
