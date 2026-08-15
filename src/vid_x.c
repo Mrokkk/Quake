@@ -32,13 +32,13 @@
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 #include <X11/keysym.h>
+#include <X11/XKBlib.h>
 #include <X11/extensions/XShm.h>
 
 #include "quakedef.h"
 #include "d_local.h"
 
 static cvar_t	m_filter = {"m_filter", "0", true};
-static qboolean	cursor_grabbed;
 
 static qboolean	mouse_avail;
 static int		mouse_buttons = 3;
@@ -47,6 +47,7 @@ static int		mouse_buttonstate;
 static float	mouse_x, mouse_y;
 static float	old_mouse_x, old_mouse_y;
 static int		ignorenext;
+static qboolean	focused;
 
 typedef struct
 {
@@ -68,13 +69,18 @@ static XVisualInfo	*x_visinfo;
 
 static int x_shmeventtype;
 
-static qboolean	oktodraw = false;
-
+static qboolean			oktodraw = false;
 static int				current_framebuffer;
-static XImage			*x_framebuffer[2] = { 0, 0 };
+static XImage			*x_framebuffer[2] = {NULL, NULL};
 static XShmSegmentInfo	x_shminfo[2];
 
-static int verbose = 0;
+static Atom WM_DELETE_WINDOW;
+static Atom _NET_WM_STATE;
+static Atom _NET_WM_STATE_MAXIMIZED_VERT;
+static Atom _NET_WM_STATE_MAXIMIZED_HORZ;
+static Atom _NET_WM_STATE_FULLSCREEN;
+
+static qboolean verbose = false;
 
 static byte current_palette[768];
 
@@ -83,6 +89,15 @@ static long X11_buffersize;
 
 int		vid_surfcachesize;
 void	*vid_surfcache;
+
+#define COMMON_XINPUT_FLAGS \
+	(StructureNotifyMask \
+	| EnterWindowMask \
+	| LeaveWindowMask \
+	| KeyPressMask \
+	| KeyReleaseMask \
+	| ButtonPressMask \
+	| ButtonReleaseMask)
 
 void VID_MenuKey(int key);
 
@@ -102,9 +117,9 @@ static void shiftmask_init()
 	r_mask	= x_vis->red_mask;
 	g_mask	= x_vis->green_mask;
 	b_mask	= x_vis->blue_mask;
-	for (r_shift = -8, x = 1; x < r_mask; x = x << 1)r_shift++;
-	for (g_shift = -8, x = 1; x < g_mask; x = x << 1)g_shift++;
-	for (b_shift = -8, x = 1; x < b_mask; x = x << 1)b_shift++;
+	for (r_shift = -8, x = 1; x < r_mask; x = x << 1) r_shift++;
+	for (g_shift = -8, x = 1; x < g_mask; x = x << 1) g_shift++;
+	for (b_shift = -8, x = 1; x < b_mask; x = x << 1) b_shift++;
 	shiftmask_fl = 1;
 }
 
@@ -188,12 +203,12 @@ static pixel24_t Rgb24(int r, int g, int b)
 	return p;
 }
 
-static void st2_fixup(XImage *framebuf, int x, int y, int width, int height)
+static void Fixup16(XImage *framebuf, int x, int y, int width, int height)
 {
 	int				yi;
 	unsigned char	*src;
 	pixel16_t		*dest;
-	register int	count, n;
+	int				count, n;
 
 	if ((x < 0) || (y < 0)) return;
 
@@ -224,12 +239,12 @@ static void st2_fixup(XImage *framebuf, int x, int y, int width, int height)
 	}
 }
 
-static void st3_fixup(XImage *framebuf, int x, int y, int width, int height)
+static void Fixup24(XImage *framebuf, int x, int y, int width, int height)
 {
 	int				yi;
 	unsigned char	*src;
 	pixel24_t		*dest;
-	register int	count, n;
+	int				count, n;
 
 	if ((x < 0) || (y < 0)) return;
 
@@ -260,6 +275,16 @@ static void st3_fixup(XImage *framebuf, int x, int y, int width, int height)
 	}
 }
 
+static void CreateAtoms(void)
+{
+#define CREATE_ATOM(a) a = XInternAtom(x_disp, #a, False)
+	CREATE_ATOM(WM_DELETE_WINDOW);
+	CREATE_ATOM(_NET_WM_STATE);
+	CREATE_ATOM(_NET_WM_STATE_MAXIMIZED_VERT);
+	CREATE_ATOM(_NET_WM_STATE_MAXIMIZED_HORZ);
+	CREATE_ATOM(_NET_WM_STATE_FULLSCREEN);
+}
+
 // ========================================================================
 // makes a null cursor
 // ========================================================================
@@ -283,6 +308,13 @@ static Cursor CreateNullCursor(Display *display, Window root)
 	XFreePixmap(display, cursormask);
 	XFreeGC(display, gc);
 	return cursor;
+}
+
+static void ResetCursorPosition(void)
+{
+	XSelectInput(x_disp, x_win, COMMON_XINPUT_FLAGS);
+	XWarpPointer(x_disp, None, x_win, 0, 0, 0, 0, (vid.width / 2), (vid.height / 2));
+	XSelectInput(x_disp, x_win, COMMON_XINPUT_FLAGS | PointerMotionMask);
 }
 
 static void ResetFrameBuffer(void)
@@ -336,11 +368,12 @@ static void ResetFrameBuffer(void)
 		0);
 
 	if (!x_framebuffer[0])
+	{
 		Sys_Error("VID: XCreateImage failed\n");
+	}
 
 	vid.buffer		= (byte *)(x_framebuffer[0]);
 	vid.conbuffer	= vid.buffer;
-
 }
 
 static void ResetSharedFrameBuffers(void)
@@ -404,8 +437,7 @@ static void ResetSharedFrameBuffers(void)
 			Sys_Error("VID: Could not get any shared memory\n");
 
 		// attach to the shared memory segment
-		x_shminfo[frm].shmaddr =
-			(void *)shmat(x_shminfo[frm].shmid, 0, 0);
+		x_shminfo[frm].shmaddr = (void *)shmat(x_shminfo[frm].shmid, 0, 0);
 
 		printf("VID: shared memory id=%d, addr=0x%lx\n", x_shminfo[frm].shmid, (long)x_shminfo[frm].shmaddr);
 
@@ -425,25 +457,23 @@ static void ResetSharedFrameBuffers(void)
 
 void VID_Init(unsigned char *palette)
 {
-	int			pnum, i;
+	int			pnum, i, tmp;
 	XVisualInfo template;
 	int			num_visuals;
 	int			template_mask;
 
 	ignorenext			= 0;
-	vid.width			= 320;
-	vid.height			= 200;
+	vid.width			= SCREEN_WIDTH * 3;
+	vid.height			= SCREEN_HEIGHT * 3;
 	vid.maxwarpwidth	= WARP_WIDTH;
 	vid.maxwarpheight	= WARP_HEIGHT;
 	vid.numpages		= 2;
 	vid.colormap		= host_colormap;
-	//	vid.cbits = VID_CBITS;
-	//	vid.grades = VID_GRADES;
-	vid.fullbright = 256 - LittleLong(*((int *)vid.colormap + 2048));
+	vid.fullbright		= 256 - LittleLong(*((int *)vid.colormap + 2048));
 
 	srandom(getpid());
 
-	verbose = COM_CheckParm("-verbose");
+	verbose = !!COM_CheckParm("-verbose");
 
 	// open the display
 	x_disp = XOpenDisplay(0);
@@ -455,7 +485,9 @@ void VID_Init(unsigned char *palette)
 			Sys_Error("VID: Could not open local display\n");
 	}
 
-	XAutoRepeatOff(x_disp);
+	CreateAtoms();
+
+	XkbSetDetectableAutoRepeat(x_disp, true, &tmp);
 
 	// for debugging only
 	XSynchronize(x_disp, True);
@@ -516,7 +548,7 @@ void VID_Init(unsigned char *palette)
 	else if (num_visuals == 0)
 	{
 		if (template_mask == VisualIDMask)
-			Sys_Error("VID: Bad visual id %d\n", template.visualid);
+			Sys_Error("VID: Bad visual id %lu\n", template.visualid);
 		else
 			Sys_Error("VID: No visuals at depth %d\n", template.depth);
 	}
@@ -546,9 +578,7 @@ void VID_Init(unsigned char *palette)
 			x_vis,
 			AllocNone);
 
-		attribs.event_mask = StructureNotifyMask | KeyPressMask
-			| KeyReleaseMask | ExposureMask | PointerMotionMask
-			| ButtonPressMask | ButtonReleaseMask;
+		attribs.event_mask = COMMON_XINPUT_FLAGS | ExposureMask;
 		attribs.border_pixel	= 0;
 		attribs.colormap		= tmpcmap;
 
@@ -595,6 +625,22 @@ void VID_Init(unsigned char *palette)
 		x_gc							= XCreateGC(x_disp, x_win, valuemask, &xgcvalues);
 	}
 
+	if (COM_CheckParm("-fullscreen"))
+	{
+		Atom atoms[] = {
+			_NET_WM_STATE_FULLSCREEN,
+		};
+		XChangeProperty(x_disp, x_win, _NET_WM_STATE, XA_ATOM, 32, PropModeReplace, (unsigned char*)atoms, Q_ARRLEN(atoms));
+	}
+	else if (COM_CheckParm("-maximized"))
+	{
+		Atom atoms[] = {
+			_NET_WM_STATE_MAXIMIZED_VERT,
+			_NET_WM_STATE_MAXIMIZED_HORZ,
+		};
+		XChangeProperty(x_disp, x_win, _NET_WM_STATE, XA_ATOM, 32, PropModeReplace, (unsigned char*)atoms, Q_ARRLEN(atoms));
+	}
+
 	// map the window
 	XMapWindow(x_disp, x_win);
 
@@ -610,6 +656,8 @@ void VID_Init(unsigned char *palette)
 		while (!oktodraw);
 	}
 	// now safe to draw
+
+	XSetWMProtocols(x_disp, x_win, &WM_DELETE_WINDOW, 1);
 
 	// even if MITSHM is available, make sure it's a local connection
 	if (XShmQueryExtension(x_disp))
@@ -637,6 +685,9 @@ void VID_Init(unsigned char *palette)
 		ResetFrameBuffer();
 	}
 
+	// grab the pointer
+	XGrabPointer(x_disp, x_win, True, 0, GrabModeAsync, GrabModeAsync, x_win, None, CurrentTime);
+
 	current_framebuffer = 0;
 	vid.rowbytes		= x_framebuffer[0]->bytes_per_line;
 	vid.buffer			= (pixel_t *)x_framebuffer[0]->data;
@@ -645,7 +696,7 @@ void VID_Init(unsigned char *palette)
 	vid.conrowbytes		= vid.rowbytes;
 	vid.conwidth		= vid.width;
 	vid.conheight		= vid.height;
-	vid.aspect			= ((float)vid.height / (float)vid.width) * (320.0 / 240.0);
+	vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
 }
 
 void VID_ShiftPalette(unsigned char *p)
@@ -686,7 +737,6 @@ void VID_Shutdown(void)
 {
 	if (x_disp)
 	{
-		XAutoRepeatOn(x_disp);
 		XCloseDisplay(x_disp);
 	}
 }
@@ -830,21 +880,7 @@ static void GetEvent(void)
 			mouse_y = (float)((int)x_event.xmotion.y - (int)(vid.height / 2));
 
 			// move the mouse to the window center again
-			XSelectInput(
-				x_disp,
-				x_win,
-				StructureNotifyMask | KeyPressMask
-				| KeyReleaseMask | ExposureMask
-				| ButtonPressMask
-				| ButtonReleaseMask);
-			XWarpPointer(x_disp, None, x_win, 0, 0, 0, 0, (vid.width / 2), (vid.height / 2));
-			XSelectInput(
-				x_disp,
-				x_win,
-				StructureNotifyMask | KeyPressMask
-				| KeyReleaseMask | ExposureMask
-				| PointerMotionMask | ButtonPressMask
-				| ButtonReleaseMask);
+			ResetCursorPosition();
 			break;
 
 		case ButtonPress:
@@ -877,21 +913,32 @@ static void GetEvent(void)
 			config_notify			= 1;
 			break;
 
+		case EnterNotify:
+			focused = true;
+			XGrabPointer(x_disp, x_win, True, 0, GrabModeAsync, GrabModeAsync, x_win, None, CurrentTime);
+			ResetCursorPosition();
+			break;
+
+		case LeaveNotify:
+			focused = false;
+			XUngrabPointer(x_disp, CurrentTime);
+			break;
+
+		case ClientMessage:
+			if (x_event.xclient.data.l[0] == (long)WM_DELETE_WINDOW)
+			{
+				Host_Quit_f();
+			}
+			break;
+
 		default:
 			if (doShm && x_event.type == x_shmeventtype)
 				oktodraw = true;
 	}
 
-	if (!cursor_grabbed)
-	{
-		cursor_grabbed = true;
-		// grab the pointer
-		XGrabPointer(x_disp, x_win, True, 0, GrabModeAsync,	GrabModeAsync, x_win, None, CurrentTime);
-	}
 }
 
 // flushes the given rectangles from the view buffer to the screen
-
 void VID_Update(vrect_t *rects)
 {
 	// if the window changes dimension, skip this frame
@@ -908,6 +955,7 @@ void VID_Update(vrect_t *rects)
 		{
 			ResetFrameBuffer();
 		}
+		ResetCursorPosition();
 		vid.rowbytes		= x_framebuffer[0]->bytes_per_line;
 		vid.buffer			= (pixel_t *)x_framebuffer[current_framebuffer]->data;
 		vid.conbuffer		= vid.buffer;
@@ -915,6 +963,7 @@ void VID_Update(vrect_t *rects)
 		vid.conheight		= vid.height;
 		vid.conrowbytes		= vid.rowbytes;
 		vid.recalc_refdef	= 1;			// force a surface cache flush
+		vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
 		Con_CheckResize();
 		Con_Clear_f();
 		return;
@@ -923,7 +972,6 @@ void VID_Update(vrect_t *rects)
 	// force full update if not 8bit
 	if (x_visinfo->depth != 8)
 	{
-		extern int scr_fullupdate;
 		scr_fullupdate = 0;
 	}
 
@@ -932,9 +980,13 @@ void VID_Update(vrect_t *rects)
 		while (rects)
 		{
 			if (x_visinfo->depth == 16)
-				st2_fixup(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+			{
+				Fixup16(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+			}
 			else if (x_visinfo->depth == 24)
-				st3_fixup(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+			{
+				Fixup24(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+			}
 			if (!XShmPutImage(x_disp,
 				x_win,
 				x_gc,
@@ -946,9 +998,14 @@ void VID_Update(vrect_t *rects)
 				rects->width,
 				rects->height,
 				True))
+			{
 				Sys_Error("VID_Update: XShmPutImage failed\n");
+			}
 			oktodraw = false;
-			while (!oktodraw) GetEvent();
+			while (!oktodraw)
+			{
+				GetEvent();
+			}
 			rects = rects->pnext;
 		}
 		current_framebuffer = !current_framebuffer;
@@ -961,9 +1018,13 @@ void VID_Update(vrect_t *rects)
 		while (rects)
 		{
 			if (x_visinfo->depth == 16)
-				st2_fixup(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+			{
+				Fixup16(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+			}
 			else if (x_visinfo->depth == 24)
-				st3_fixup(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+			{
+				Fixup24(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+			}
 			XPutImage(x_disp,
 				x_win,
 				x_gc,
@@ -1000,23 +1061,6 @@ void VID_DitherOff(void)
 	}
 }
 
-int Sys_OpenWindow(void)
-{
-	return 0;
-}
-
-void Sys_EraseWindow(int window)
-{
-}
-
-void Sys_DrawCircle(int window, int x, int y, int r)
-{
-}
-
-void Sys_DisplayWindow(int window)
-{
-}
-
 void Sys_SendKeyEvents(void)
 {
 	// get events from x server
@@ -1026,7 +1070,7 @@ void Sys_SendKeyEvents(void)
 		while (keyq_head != keyq_tail)
 		{
 			Key_Event(keyq[keyq_tail].key, keyq[keyq_tail].down);
-			keyq_tail = (keyq_tail + 1) & 63;
+			keyq_tail = (keyq_tail + 1) & (Q_ARRLEN(keyq) - 1);
 		}
 	}
 }

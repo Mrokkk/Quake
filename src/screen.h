@@ -50,9 +50,9 @@ extern	int			scr_scaling, scr_xoff, scr_yoff;
 extern	int			sb_lines;
 
 extern	int			clearnotify;	// set to 0 whenever notify text is drawn
+extern	int			scr_fullupdate;
 extern	qboolean	scr_disabled_for_loading;
 extern	qboolean	scr_skipupdate;
-
 extern	cvar_t		scr_viewsize;
 
 extern cvar_t scr_viewsize;
