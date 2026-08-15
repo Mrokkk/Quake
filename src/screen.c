@@ -115,12 +115,12 @@ void SCR_EraseCenterString (void)
 	}
 
 	if (scr_center_lines <= 4)
-		y = vid.height*0.35;
+		y = SCREEN_HEIGHT * 0.35;
 	else
 		y = 48;
 
 	scr_copytop = 1;
-	Draw_TileClear (0, y,vid.width, 8*scr_erase_lines);
+	Draw_TileClear_Align (0, y, SCREEN_WIDTH, 8 * scr_erase_lines, CENTER, CENTER);
 }
 
 void SCR_DrawCenterString (void)
@@ -141,20 +141,20 @@ void SCR_DrawCenterString (void)
 	start = scr_centerstring;
 
 	if (scr_center_lines <= 4)
-		y = vid.height*0.35;
+		y = SCREEN_HEIGHT * 0.35;
 	else
 		y = 48;
 
 	do	
 	{
-	// scan the width of the line
-		for (l=0 ; l<40 ; l++)
+		// scan the width of the line
+		for (l = 0; l < 40; l++)
 			if (start[l] == '\n' || !start[l])
 				break;
-		x = (vid.width - l*8)/2;
-		for (j=0 ; j<l ; j++, x+=8)
+		x = (SCREEN_WIDTH - l * 8) / 2;
+		for (j = 0; j < l; j++, x += 8)
 		{
-			Draw_Character (x, y, start[j]);	
+			Draw_Character_Center (x, y, start[j]);
 			if (!remaining--)
 				return;
 		}
@@ -167,7 +167,8 @@ void SCR_DrawCenterString (void)
 		if (!*start)
 			break;
 		start++;		// skip the \n
-	} while (1);
+	}
+	while (1);
 }
 
 void SCR_CheckDrawCenterString (void)
@@ -262,9 +263,9 @@ static void SCR_CalcRefdef (void)
 	if (size >= 120)
 		sb_lines = 0;		// no status bar at all
 	else if (size >= 110)
-		sb_lines = 24 * scr_scaling;		// no inventory
+		sb_lines = 24;		// no inventory
 	else
-		sb_lines = (24 + 16 + 8) * scr_scaling;
+		sb_lines = (24 + 16 + 8);
 
 // these calculations mirror those in R_Init() for r_refdef, but take no
 // account of water warping
@@ -273,7 +274,7 @@ static void SCR_CalcRefdef (void)
 	vrect.width = vid.width;
 	vrect.height = vid.height;
 
-	R_SetVrect (&vrect, &scr_vrect, sb_lines);
+	R_SetVrect (&vrect, &scr_vrect, sb_lines * scr_scaling);
 
 // guard against going from one mode to another that's less than half the
 // vertical resolution
@@ -281,7 +282,7 @@ static void SCR_CalcRefdef (void)
 		scr_con_current = vid.height;
 
 // notify the refresh of the change
-	R_ViewChanged (&vrect, sb_lines, vid.aspect);
+	R_ViewChanged (&vrect, sb_lines * scr_scaling, vid.aspect);
 }
 
 
@@ -359,7 +360,9 @@ void SCR_DrawRam (void)
 	if (!r_cache_thrash)
 		return;
 
+#if 0
 	Draw_Pic (scr_vrect.x+32, scr_vrect.y, scr_ram);
+#endif
 }
 
 /*
@@ -384,7 +387,9 @@ void SCR_DrawTurtle (void)
 	if (count < 3)
 		return;
 
-	Draw_Pic (scr_vrect.x, scr_vrect.y, scr_turtle);
+#if 0
+	Draw_Pic_Absolute (scr_vrect.x, scr_vrect.y, scr_turtle);
+#endif
 }
 
 /*
@@ -399,7 +404,9 @@ void SCR_DrawNet (void)
 	if (cls.demoplayback)
 		return;
 
-	Draw_Pic (scr_vrect.x+64, scr_vrect.y, scr_net);
+#if 0
+	Draw_Pic_Absolute (scr_vrect.x+64, scr_vrect.y, scr_net);
+#endif
 }
 
 /*
@@ -418,11 +425,10 @@ void SCR_DrawPause (void)
 		return;
 
 	pic = Draw_CachePic ("gfx/pause.lmp");
-	Draw_Pic ( (vid.width - pic->width)/2, 
-		(vid.height - 48 - pic->height)/2, pic);
+	Draw_Pic_Center (
+		(SCREEN_WIDTH - pic->width) / 2,
+		(SCREEN_HEIGHT - 48 - pic->height) / 2, pic);
 }
-
-
 
 /*
 ==============
@@ -437,14 +443,12 @@ void SCR_DrawLoading (void)
 		return;
 		
 	pic = Draw_CachePic ("gfx/loading.lmp");
-	Draw_Pic ( (vid.width - pic->width)/2, 
-		(vid.height - 48 - pic->height)/2, pic);
+	Draw_Pic_Center (
+		(SCREEN_WIDTH - pic->width) / 2,
+		(SCREEN_HEIGHT - 48 - pic->height) / 2, pic);
 }
 
-
-
 //=============================================================================
-
 
 /*
 ==================
@@ -488,13 +492,13 @@ void SCR_SetUpToDrawConsole (void)
 	if (clearconsole++ < vid.numpages)
 	{
 		scr_copytop = 1;
-		Draw_TileClear (0,(int)scr_con_current,vid.width, vid.height - (int)scr_con_current);
+		Draw_TileClear_Absolute (0, (int)scr_con_current,vid.width, vid.height - (int)scr_con_current);
 		Sbar_Changed ();
 	}
 	else if (clearnotify++ < vid.numpages)
 	{
 		scr_copytop = 1;
-		Draw_TileClear (0,0,vid.width, con_notifylines);
+		Draw_TileClear_Absolute (0, 0, vid.width, con_notifylines);
 	}
 	else
 		con_notifylines = 0;
@@ -520,7 +524,6 @@ void SCR_DrawConsole (void)
 	}
 }
 
-
 /* 
 ============================================================================== 
  
@@ -528,7 +531,6 @@ void SCR_DrawConsole (void)
  
 ============================================================================== 
 */ 
- 
 
 typedef struct
 {
@@ -622,7 +624,7 @@ void SCR_ScreenShot_f (void)
 { 
 	int     i; 
 	char		pcxname[80]; 
-	char		checkname[MAX_OSPATH];
+	char		checkname[MAX_OSPATH * 2];
 
 // 
 // find a file name to save it to 
@@ -633,7 +635,7 @@ void SCR_ScreenShot_f (void)
 	{ 
 		pcxname[5] = i/10 + '0'; 
 		pcxname[6] = i%10 + '0'; 
-		sprintf (checkname, "%s/%s", com_gamedir, pcxname);
+		snprintf (checkname, sizeof(checkname), "%s/%s", com_gamedir, pcxname);
 		if (Sys_FileTime(checkname) == -1)
 			break;	// file doesn't exist
 	} 
@@ -720,18 +722,18 @@ void SCR_DrawNotifyString (void)
 
 	start = scr_notifystring;
 
-	y = vid.height*0.35;
+	y = SCREEN_HEIGHT * 0.35;
 
-	do	
+	do
 	{
 	// scan the width of the line
-		for (l=0 ; l<40 ; l++)
+		for (l = 0; l < 40; l++)
 			if (start[l] == '\n' || !start[l])
 				break;
-		x = (vid.width - l*8)/2;
-		for (j=0 ; j<l ; j++, x+=8)
-			Draw_Character (x, y, start[j]);	
-			
+		x = (SCREEN_WIDTH - l * 8) / 2;
+		for (j = 0; j < l; j++, x += 8)
+			Draw_Character_Center (x, y, start[j]);
+
 		y += 8;
 
 		while (*start && *start != '\n')
@@ -740,7 +742,8 @@ void SCR_DrawNotifyString (void)
 		if (!*start)
 			break;
 		start++;		// skip the \n
-	} while (1);
+	}
+	while (1);
 }
 
 /*
@@ -800,7 +803,6 @@ void SCR_BringDownConsole (void)
 	cl.cshifts[0].percent = 0;		// no area contents palette on next frame
 	VID_SetPalette (host_basepal);
 }
-
 
 /*
 ==================
@@ -871,24 +873,23 @@ void SCR_UpdateScreen (void)
 	
 	if (vid.recalc_refdef)
 	{
-	// something changed, so reorder the screen
+		// something changed, so reorder the screen
 		SCR_CalcRefdef ();
 	}
 
-//
-// do 3D refresh drawing, and then update the screen
-//
+	//
+	// do 3D refresh drawing, and then update the screen
+	//
 	D_EnableBackBufferAccess ();	// of all overlay stuff if drawing directly
 
 	if (scr_fullupdate++ < vid.numpages)
 	{	// clear the entire screen
 		scr_copyeverything = 1;
-		Draw_TileClear (0,0,vid.width,vid.height);
+		Draw_TileClear_Absolute (0, 0, vid.width, vid.height);
 		Sbar_Changed ();
 	}
 
 	pconupdate = NULL;
-
 
 	SCR_SetUpToDrawConsole ();
 	SCR_EraseCenterString ();
@@ -969,7 +970,7 @@ void SCR_UpdateScreen (void)
 		vrect.x = 0;
 		vrect.y = 0;
 		vrect.width = vid.width;
-		vrect.height = vid.height - sb_lines;
+		vrect.height = vid.height - sb_lines * scr_scaling;
 		vrect.pnext = 0;
 	
 		VID_Update (&vrect);
@@ -985,7 +986,6 @@ void SCR_UpdateScreen (void)
 		VID_Update (&vrect);
 	}
 }
-
 
 /*
 ==================

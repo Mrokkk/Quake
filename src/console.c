@@ -484,28 +484,39 @@ void Con_DrawInput (void)
 	char	*text;
 
 	if (key_dest != key_console && !con_forcedup)
+	{
 		return;		// don't draw anything
+	}
 
 	text = key_lines[edit_line];
 	
-// add the cursor frame
-	text[key_linepos] = 10+((int)(realtime*con_cursorspeed)&1);
+	// add the cursor frame
+	text[key_linepos] = 10 + ((int)(realtime * con_cursorspeed) & 1);
 	
-// fill out remainder with spaces
-	for (i=key_linepos+1 ; i< con_linewidth ; i++)
+	// fill out remainder with spaces
+	for (i = key_linepos + 1; i < con_linewidth; i++)
+	{
 		text[i] = ' ';
+	}
 		
-//	prestep if horizontally scrolling
+	//	prestep if horizontally scrolling
 	if (key_linepos >= con_linewidth)
+	{
 		text += 1 + key_linepos - con_linewidth;
+	}
 		
-// draw it
-	y = con_vislines-16;
+	// draw it
+	y = con_vislines / scr_scaling - 16;
 
-	for (i=0 ; i<con_linewidth ; i++)
-		Draw_Character ( (i+1)<<3, con_vislines - 16, text[i]);
+	if (y > 0)
+	{
+		for (i = 0; i < con_linewidth; i++)
+		{
+			Draw_Character_Align ((i + 1) * CHAR_HEIGHT, y, LEFT, TOP, text[i]);
+		}
+	}
 
-// remove cursor
+	// remove cursor
 	key_lines[edit_line][key_linepos] = 0;
 }
 
@@ -523,10 +534,11 @@ void Con_DrawNotify (void)
 	char	*text;
 	int		i;
 	float	time;
+
 	extern char chat_buffer[];
 
 	v = 0;
-	for (i= con_current-NUM_CON_TIMES+1 ; i<=con_current ; i++)
+	for (i = con_current - NUM_CON_TIMES + 1; i <= con_current; i++)
 	{
 		if (i < 0)
 			continue;
@@ -541,12 +553,13 @@ void Con_DrawNotify (void)
 		clearnotify = 0;
 		scr_copytop = 1;
 
-		for (x = 0 ; x < con_linewidth ; x++)
-			Draw_Character ( (x+1)<<3, v, text[x]);
+		for (x = 0; x < con_linewidth; x++)
+		{
+			Draw_Character_Align ((x + 1) * CHAR_WIDTH, v, LEFT, TOP, text[x]);
+		}
 
-		v += 8;
+		v += CHAR_HEIGHT;
 	}
-
 
 	if (key_dest == key_message)
 	{
@@ -555,18 +568,20 @@ void Con_DrawNotify (void)
 	
 		x = 0;
 		
-		Draw_String (8, v, "say:");
+		Draw_String_Align (8, v, LEFT, TOP, "say:");
 		while(chat_buffer[x])
 		{
-			Draw_Character ( (x+5)<<3, v, chat_buffer[x]);
+			Draw_Character_Align ((x + 5) << 3, v, LEFT, TOP, chat_buffer[x]);
 			x++;
 		}
-		Draw_Character ( (x+5)<<3, v, 10+((int)(realtime*con_cursorspeed)&1));
+		Draw_Character_Align ((x + 5) << 3, v, LEFT, TOP, 10 + ((int)(realtime * con_cursorspeed) & 1));
 		v += 8;
 	}
 	
 	if (v > con_notifylines)
+	{
 		con_notifylines = v;
+	}
 }
 
 /*
@@ -579,37 +594,43 @@ The typing input line at the bottom should only be drawn if typing is allowed
 */
 void Con_DrawConsole (int lines, qboolean drawinput)
 {
-	int				i, x, y;
-	int				rows;
-	char			*text;
-	int				j;
+	int		i, x, y;
+	int		rows;
+	char	*text;
+	int		j;
 	
 	if (lines <= 0)
 		return;
 
-// draw the background
+	// draw the background
 	Draw_ConsoleBackground (lines);
 
-// draw the text
+	// draw the text
 	con_vislines = lines;
 
-	rows = (lines-16)>>3;		// rows of text to draw
-	y = lines - 16 - (rows<<3);	// may start slightly negative
+	rows = (lines / scr_scaling - 16) / (CHAR_HEIGHT);		// rows of text to draw
+	y = lines / scr_scaling - 16 - (rows * CHAR_HEIGHT);	// may start slightly negative
 
-	for (i= con_current - rows + 1 ; i<=con_current ; i++, y+=8 )
+	for (i = con_current - rows + 1; i <= con_current; i++, y += 8)
 	{
 		j = i - con_backscroll;
-		if (j<0)
+		if (j < 0)
+		{
 			j = 0;
-		text = con_text + (j % con_totallines)*con_linewidth;
+		}
+		text = con_text + (j % con_totallines) * con_linewidth;
 
-		for (x=0 ; x<con_linewidth ; x++)
-			Draw_Character ( (x+1)<<3, y, text[x]);
+		for (x = 0; x < con_linewidth; x++)
+		{
+			Draw_Character_Align ((x + 1) * CHAR_WIDTH, y, LEFT, TOP, text[x]);
+		}
 	}
 
-// draw the input prompt, user text, and cursor if desired
+	// draw the input prompt, user text, and cursor if desired
 	if (drawinput)
+	{
 		Con_DrawInput ();
+	}
 }
 
 

@@ -1056,12 +1056,7 @@ void V_RenderView (void)
 #ifndef GLQUAKE
 	if (crosshair.value)
 	{
-		// TODO: add custom crosshair
-		Draw_CharacterScaled (
-			scr_vrect.x + scr_vrect.width/2 + cl_crossx.value - 4 * scr_scaling,
-			scr_vrect.y + scr_vrect.height/2 + cl_crossy.value - 4 * scr_scaling,
-			scr_scaling,
-			'+');
+		Draw_Crosshair(cl_crossx.value, cl_crossy.value);
 	}
 #endif
 		

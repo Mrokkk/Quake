@@ -132,14 +132,14 @@ Draws one solid graphics character
 */
 void M_DrawCharacter (int cx, int cy, int num)
 {
-	Draw_CharacterScaled ( cx * scr_scaling + scr_xoff, cy * scr_scaling + scr_yoff, scr_scaling, num);
+	Draw_Character_Center (cx, cy, num);
 }
 
 void M_Print (int cx, int cy, char *str)
 {
 	while (*str)
 	{
-		M_DrawCharacter (cx, cy, (*str)+128);
+		M_DrawCharacter (cx, cy, (*str) + 128);
 		str++;
 		cx += 8;
 	}
@@ -157,12 +157,12 @@ void M_PrintWhite (int cx, int cy, char *str)
 
 void M_DrawTransPic (int x, int y, qpic_t *pic)
 {
-	Draw_TransPicScaled (x * scr_scaling + scr_xoff, y * scr_scaling + scr_yoff, scr_scaling, pic);
+	Draw_TransPic_Center (x, y, pic);
 }
 
 void M_DrawPic (int x, int y, qpic_t *pic)
 {
-	Draw_TransPicScaled (x * scr_scaling + scr_xoff, y * scr_scaling + scr_yoff, scr_scaling, pic);
+	Draw_Pic_Center (x, y, pic);
 }
 
 byte identityTable[256];
@@ -174,30 +174,43 @@ void M_BuildTranslationTable(int top, int bottom)
 	byte	*dest, *source;
 
 	for (j = 0; j < 256; j++)
+	{
 		identityTable[j] = j;
+	}
+
 	dest = translationTable;
 	source = identityTable;
 	memcpy (dest, source, 256);
 
 	if (top < 128)	// the artists made some backwards ranges.  sigh.
+	{
 		memcpy (dest + TOP_RANGE, source + top, 16);
+	}
 	else
-		for (j=0 ; j<16 ; j++)
-			dest[TOP_RANGE+j] = source[top+15-j];
+	{
+		for (j = 0; j < 16; j++)
+		{
+			dest[TOP_RANGE + j] = source[top + 15 - j];
+		}
+	}
 
 	if (bottom < 128)
+	{
 		memcpy (dest + BOTTOM_RANGE, source + bottom, 16);
+	}
 	else
-		for (j=0 ; j<16 ; j++)
-			dest[BOTTOM_RANGE+j] = source[bottom+15-j];
+	{
+		for (j = 0; j < 16; j++)
+		{
+			dest[BOTTOM_RANGE + j] = source[bottom + 15 - j];
+		}
+	}
 }
-
 
 void M_DrawTransPicTranslate (int x, int y, qpic_t *pic)
 {
-	Draw_TransPicTranslate (x + ((vid.width - SCREEN_WIDTH)>>1), y, pic, translationTable);
+	Draw_TransPicTranslate_Align (x, y, CENTER, CENTER, pic, translationTable);
 }
-
 
 void M_DrawTextBox (int x, int y, int width, int lines)
 {
@@ -307,7 +320,6 @@ void M_Menu_Main_f (void)
 	m_entersound = true;
 }
 
-
 void M_Main_Draw (void)
 {
 	int		f;
@@ -322,7 +334,6 @@ void M_Main_Draw (void)
 
 	M_DrawTransPic (54, 32 + m_main_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
-
 
 void M_Main_Key (int key)
 {
@@ -390,7 +401,6 @@ void M_Menu_SinglePlayer_f (void)
 	m_entersound = true;
 }
 
-
 void M_SinglePlayer_Draw (void)
 {
 	int		f;
@@ -405,7 +415,6 @@ void M_SinglePlayer_Draw (void)
 
 	M_DrawTransPic (54, 32 + m_singleplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
-
 
 void M_SinglePlayer_Key (int key)
 {
@@ -499,7 +508,6 @@ void M_Menu_Load_f (void)
 	M_ScanSaves ();
 }
 
-
 void M_Menu_Save_f (void)
 {
 	if (!sv.active)
@@ -513,7 +521,6 @@ void M_Menu_Save_f (void)
 	key_dest = key_menu;
 	M_ScanSaves ();
 }
-
 
 void M_Load_Draw (void)
 {
@@ -530,7 +537,6 @@ void M_Load_Draw (void)
 	M_DrawCharacter (8, 32 + load_cursor*8, 12+((int)(realtime*4)&1));
 }
 
-
 void M_Save_Draw (void)
 {
 	int		i;
@@ -545,7 +551,6 @@ void M_Save_Draw (void)
 // line cursor
 	M_DrawCharacter (8, 32 + load_cursor*8, 12+((int)(realtime*4)&1));
 }
-
 
 void M_Load_Key (int k)
 {
@@ -588,7 +593,6 @@ void M_Load_Key (int k)
 	}
 }
 
-
 void M_Save_Key (int k)
 {
 	switch (k)
@@ -627,14 +631,12 @@ void M_Save_Key (int k)
 int	m_multiplayer_cursor;
 #define	MULTIPLAYER_ITEMS	3
 
-
 void M_Menu_MultiPlayer_f (void)
 {
 	key_dest = key_menu;
 	m_state = m_multiplayer;
 	m_entersound = true;
 }
-
 
 void M_MultiPlayer_Draw (void)
 {
@@ -654,7 +656,6 @@ void M_MultiPlayer_Draw (void)
 		return;
 	M_PrintWhite ((SCREEN_WIDTH/2) - ((27*8)/2), 148, "No Communications Available");
 }
-
 
 void M_MultiPlayer_Key (int key)
 {
@@ -723,7 +724,6 @@ void M_Menu_Setup_f (void)
 	setup_bottom = setup_oldbottom = ((int)cl_color.value) & 15;
 }
 
-
 void M_Setup_Draw (void)
 {
 	qpic_t	*p;
@@ -760,7 +760,6 @@ void M_Setup_Draw (void)
 	if (setup_cursor == 1)
 		M_DrawCharacter (168 + 8*strlen(setup_myname), setup_cursor_table [setup_cursor], 10+((int)(realtime*4)&1));
 }
-
 
 void M_Setup_Key (int k)
 {
@@ -915,7 +914,6 @@ void M_Menu_Net_f (void)
 	M_Net_Key (K_DOWNARROW);
 }
 
-
 void M_Net_Draw (void)
 {
 	int		f;
@@ -993,7 +991,6 @@ void M_Net_Draw (void)
 	f = (int)(host_time * 10)%6;
 	M_DrawTransPic (54, 32 + m_net_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
-
 
 void M_Net_Key (int k)
 {
@@ -1080,7 +1077,6 @@ void M_Menu_Options_f (void)
 #endif
 }
 
-
 void M_AdjustSliders (int dir)
 {
 	S_LocalSound ("misc/menu3.wav");
@@ -1164,7 +1160,6 @@ void M_AdjustSliders (int dir)
 #endif
 	}
 }
-
 
 void M_DrawSlider (int x, int y, float range)
 {
@@ -1254,7 +1249,6 @@ void M_Options_Draw (void)
 // cursor
 	M_DrawCharacter (SCREEN_HEIGHT, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
 }
-
 
 void M_Options_Key (int k)
 {
@@ -1366,7 +1360,6 @@ void M_Menu_Keys_f (void)
 	m_entersound = true;
 }
 
-
 void M_FindKeysForCommand (char *command, int *twokeys)
 {
 	int		count;
@@ -1411,10 +1404,9 @@ void M_UnbindCommand (char *command)
 	}
 }
 
-
 void M_Keys_Draw (void)
 {
-	int		i, l;
+	size_t	i, l;
 	int		keys[2];
 	char	*name;
 	int		x, y;
@@ -1462,7 +1454,6 @@ void M_Keys_Draw (void)
 		M_DrawCharacter (130, 48 + keys_cursor*8, 12+((int)(realtime*4)&1));
 }
 
-
 void M_Keys_Key (int k)
 {
 	char	cmd[80];
@@ -1503,7 +1494,7 @@ void M_Keys_Key (int k)
 	case K_RIGHTARROW:
 		S_LocalSound ("misc/menu1.wav");
 		keys_cursor++;
-		if (keys_cursor >= NUMCOMMANDS)
+		if (keys_cursor >= (int)NUMCOMMANDS)
 			keys_cursor = 0;
 		break;
 
@@ -1533,12 +1524,10 @@ void M_Menu_Video_f (void)
 	m_entersound = true;
 }
 
-
 void M_Video_Draw (void)
 {
 	(*vid_menudrawfn) ();
 }
-
 
 void M_Video_Key (int key)
 {
@@ -1551,7 +1540,6 @@ void M_Video_Key (int key)
 int		help_page;
 #define	NUM_HELP_PAGES	6
 
-
 void M_Menu_Help_f (void)
 {
 	key_dest = key_menu;
@@ -1560,13 +1548,10 @@ void M_Menu_Help_f (void)
 	help_page = 0;
 }
 
-
-
 void M_Help_Draw (void)
 {
 	M_DrawPic (0, 0, Draw_CachePic ( va("gfx/help%i.lmp", help_page)) );
 }
-
 
 void M_Help_Key (int key)
 {
@@ -1590,7 +1575,6 @@ void M_Help_Key (int key)
 			help_page = NUM_HELP_PAGES-1;
 		break;
 	}
-
 }
 
 //=============================================================================
@@ -1658,7 +1642,6 @@ void M_Menu_Quit_f (void)
 	msgNumber = rand()&7;
 }
 
-
 void M_Quit_Key (int key)
 {
 	switch (key)
@@ -1687,9 +1670,7 @@ void M_Quit_Key (int key)
 	default:
 		break;
 	}
-
 }
-
 
 void M_Quit_Draw (void)
 {
@@ -1790,7 +1771,6 @@ void M_Menu_SerialConfig_f (void)
 	m_return_reason[0] = 0;
 }
 
-
 void M_SerialConfig_Draw (void)
 {
 	qpic_t	*p;
@@ -1856,7 +1836,6 @@ void M_SerialConfig_Draw (void)
 	if (*m_return_reason)
 		M_PrintWhite (basex, 148, m_return_reason);
 }
-
 
 void M_SerialConfig_Key (int key)
 {
@@ -2010,16 +1989,10 @@ forward:
 	}
 
 	if (DirectConfig && (serialConfig_cursor == 3 || serialConfig_cursor == 4))
-		if (key == K_UPARROW)
-			serialConfig_cursor = 2;
-		else
-			serialConfig_cursor = 5;
+		serialConfig_cursor = key == K_UPARROW ? 2 : 5;
 
 	if (SerialConfig && StartingGame && serialConfig_cursor == 4)
-		if (key == K_UPARROW)
-			serialConfig_cursor = 3;
-		else
-			serialConfig_cursor = 5;
+		serialConfig_cursor = key == K_UPARROW ? 3 : 5;
 }
 
 //=============================================================================
@@ -2041,7 +2014,6 @@ void M_Menu_ModemConfig_f (void)
 	m_entersound = true;
 	(*GetModemConfig) (0, &modemConfig_dialing, modemConfig_clear, modemConfig_init, modemConfig_hangup);
 }
-
 
 void M_ModemConfig_Draw (void)
 {
@@ -2082,7 +2054,6 @@ void M_ModemConfig_Draw (void)
 
 	M_DrawCharacter (basex-8, modemConfig_cursor_table [modemConfig_cursor], 12+((int)(realtime*4)&1));
 }
-
 
 void M_ModemConfig_Key (int key)
 {
@@ -2226,7 +2197,6 @@ void M_Menu_LanConfig_f (void)
 	m_return_reason[0] = 0;
 }
 
-
 void M_LanConfig_Draw (void)
 {
 	qpic_t	*p;
@@ -2284,7 +2254,6 @@ void M_LanConfig_Draw (void)
 	if (*m_return_reason)
 		M_PrintWhite (basex, 148, m_return_reason);
 }
-
 
 void M_LanConfig_Key (int key)
 {
@@ -2383,10 +2352,7 @@ void M_LanConfig_Key (int key)
 	}
 
 	if (StartingGame && lanConfig_cursor == 2)
-		if (key == K_UPARROW)
-			lanConfig_cursor = 1;
-		else
-			lanConfig_cursor = 0;
+		lanConfig_cursor = key == K_UPARROW ? 1 : 0;
 
 	l =  Q_atoi(lanConfig_portname);
 	if (l > 65535)
@@ -2560,7 +2526,6 @@ void M_Menu_GameOptions_f (void)
 		maxplayers = svs.maxclientslimit;
 }
 
-
 int gameoptions_cursor_table[] = {40, 56, 64, 72, 80, 88, 96, 112, 120};
 #define	NUM_GAMEOPTIONS	9
 int		gameoptions_cursor;
@@ -2688,7 +2653,6 @@ void M_GameOptions_Draw (void)
 		}
 	}
 }
-
 
 void M_NetStart_Change (int dir)
 {
@@ -2868,9 +2832,7 @@ void M_Menu_Search_f (void)
 	slistLocal = false;
 	searchComplete = false;
 	NET_Slist_f();
-
 }
-
 
 void M_Search_Draw (void)
 {
@@ -2908,7 +2870,6 @@ void M_Search_Draw (void)
 	M_Menu_LanConfig_f ();
 }
 
-
 void M_Search_Key (int key)
 {
 }
@@ -2929,7 +2890,6 @@ void M_Menu_ServerList_f (void)
 	m_return_reason[0] = 0;
 	slist_sorted = false;
 }
-
 
 void M_ServerList_Draw (void)
 {
@@ -3036,7 +2996,6 @@ void M_Init (void)
 	Cmd_AddCommand ("help", M_Menu_Help_f);
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f);
 }
-
 
 void M_Draw (void)
 {
@@ -3153,7 +3112,6 @@ void M_Draw (void)
 	VID_LockBuffer ();
 }
 
-
 void M_Keydown (int key)
 {
 	switch (m_state)
@@ -3234,7 +3192,6 @@ void M_Keydown (int key)
 		return;
 	}
 }
-
 
 void M_ConfigureNetSubsystem(void)
 {
