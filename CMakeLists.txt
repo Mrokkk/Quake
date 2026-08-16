@@ -27,7 +27,7 @@ endif()
 
 # Optimizations
 if(OPTIMIZE)
-    add_compile_options(-O3 -ffast-math -funroll-loops -march=native)
+    add_compile_options(-O3 -fno-math-errno -fno-trapping-math -funroll-loops -march=native)
 
     if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
         add_compile_options(-fexpensive-optimizations)
