@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include <stddef.h>
+
 Q_BEGIN_DECLS
 
 #if !defined BYTE_DEFINED
@@ -96,7 +98,22 @@ void InsertLinkAfter (link_t *l, link_t *after);
 #define Q_MIN(a, b)		({ a < b ? a : b; })
 #define Q_MAX(a, b)		({ a > b ? a : b; })
 
-#define Q_ARRLEN(array)	(sizeof(array) / sizeof(*(array)))
+#define Q_ARRLEN(array)		(sizeof(array) / sizeof(*(array)))
+#define Q_UNUSED(x)			((void)(x))	// for pesky compiler / lint warnings
+
+#if defined(__GNUC__) || defined(__TINYC__)
+#define Q_UNLIKELY(x)			__builtin_expect(!!(x), 0)
+#define Q_LIKELY(x)				__builtin_expect(!!(x), 1)
+#define Q_PRINTF_FORMAT(fmt)	__attribute__((format(printf, fmt, fmt + 1)))
+#define Q_NORETURN				__attribute__((noreturn))
+#define Q_FALLTHROUGH			__attribute__((fallthrough))
+#else
+#define Q_UNLIKELY(x)			x
+#define Q_LIKELY(x)				x
+#define Q_PRINTF_FORMAT(fmt)
+#define Q_NORETURN
+#define Q_FALLTHROUGH
+#endif
 
 //============================================================================
 
@@ -130,26 +147,36 @@ int MSG_ReadShort (void);
 int MSG_ReadLong (void);
 float MSG_ReadFloat (void);
 char *MSG_ReadString (void);
+size_t MSG_ReadString_Safe (char *buf, size_t size);
 
 float MSG_ReadCoord (void);
 float MSG_ReadAngle (void);
 
 //============================================================================
 
-void Q_memset (void *dest, int fill, int count);
-void Q_memcpy (void *dest, void *src, int count);
-int Q_memcmp (void *m1, void *m2, int count);
-void Q_strcpy (char *dest, char *src);
-void Q_strncpy (char *dest, char *src, int count);
-int Q_strlen (char *str);
-char *Q_strrchr (char *s, char c);
-void Q_strcat (char *dest, char *src);
-int Q_strcmp (char *s1, char *s2);
-int Q_strncmp (char *s1, char *s2, int count);
-int Q_strcasecmp (char *s1, char *s2);
-int Q_strncasecmp (char *s1, char *s2, int n);
-int	Q_atoi (char *str);
-float Q_atof (char *str);
+void	Q_memset (void *dest, int fill, int count);
+void	Q_memcpy (void *dest, void *src, int count);
+int		Q_memcmp (void *m1, void *m2, int count);
+void	Q_strcpy (char *dest, char *src);
+void	Q_strncpy (char *dest, char *src, int count);
+size_t	Q_strlcpy (char *dst, const char *src, size_t size);
+int		Q_strlen (char *str);
+char	*Q_strrchr (char *s, char c);
+void	Q_strcat (char *dest, char *src);
+int		Q_strcmp (char *s1, char *s2);
+int		Q_strncmp (char *s1, char *s2, int count);
+int		Q_strcasecmp (char *s1, char *s2);
+int		Q_strncasecmp (char *s1, char *s2, int n);
+int		Q_atoi (char *str);
+float	Q_atof (char *str);
+
+#ifdef _WIN32
+#define Q_snprintf	_snprintf
+#define Q_vsnprintf	_vsnprintf
+#else
+#define Q_snprintf	snprintf
+#define Q_vsnprintf	vsnprintf
+#endif
 
 //============================================================================
 
@@ -171,7 +198,7 @@ void COM_StripExtension (char *in, char *out);
 void COM_FileBase (char *in, char *out);
 void COM_DefaultExtension (char *path, char *extension);
 
-char	*va(char *format, ...) PRINTF_FORMAT(1);
+char *va(char *format, ...) Q_PRINTF_FORMAT(1);
 // does a varargs printf into a temp buffer
 
 

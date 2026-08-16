@@ -446,7 +446,7 @@ void Host_ShutdownServer(qboolean crash)
 	while (count);
 
 // make sure all the clients know we're disconnecting
-	buf.data = message;
+	buf.data = (byte *)message;
 	buf.maxsize = 4;
 	buf.cursize = 0;
 	MSG_WriteByte(&buf, svc_disconnect);
@@ -789,6 +789,12 @@ void Host_InitVCR (quakeparms_t *parms)
 
 		Sys_FileRead (vcrFile, &com_argc, sizeof(int));
 		com_argv = malloc(com_argc * sizeof(char *));
+
+		if (!com_argv)
+		{
+			Sys_Error("Failed to allocate\n");
+		}
+
 		com_argv[0] = parms->argv[0];
 		for (i = 0; i < com_argc; i++)
 		{
@@ -956,3 +962,4 @@ void Host_Shutdown(void)
 	}
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

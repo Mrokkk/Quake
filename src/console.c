@@ -277,30 +277,31 @@ void Con_Print (char *txt)
 	
 	con_backscroll = 0;
 
-	if (txt[0] == 1)
+	if (txt[0] == CON_COLOR_1)
 	{
 		mask = 128;		// go to colored text
 		S_LocalSound ("misc/talk.wav");
 	// play talk wav
 		txt++;
 	}
-	else if (txt[0] == 2)
+	else if (txt[0] == CON_COLOR_2)
 	{
 		mask = 128;		// go to colored text
 		txt++;
 	}
 	else
+	{
 		mask = 0;
-
+	}
 
 	while ( (c = *txt) )
 	{
-	// count word length
+		// count word length
 		for (l=0 ; l< con_linewidth ; l++)
 			if ( txt[l] <= ' ')
 				break;
 
-	// word wrap
+		// word wrap
 		if (l != con_linewidth && (con_x + l > con_linewidth) )
 			con_x = 0;
 
@@ -312,7 +313,6 @@ void Con_Print (char *txt)
 			cr = false;
 		}
 
-		
 		if (!con_x)
 		{
 			Con_Linefeed ();
@@ -373,21 +373,20 @@ Handles cursor positioning, line wrapping, etc
 ================
 */
 #define	MAXPRINTMSG	4096
-// FIXME: make a buffer size safe vsprintf?
 void Con_Printf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
 	static qboolean	inupdate;
 	
-	va_start (argptr,fmt);
-	vsprintf (msg,fmt,argptr);
+	va_start (argptr, fmt);
+	Q_vsnprintf (msg, sizeof(msg), fmt, argptr);
 	va_end (argptr);
 	
-// also echo to debugging console
+	// also echo to debugging console
 	Sys_Printf ("%s", msg);	// also echo to debugging console
 
-// log all messages to file
+	// log all messages to file
 	if (con_debuglog)
 		Con_DebugLog(va("%s/qconsole.log",com_gamedir), "%s", msg);
 
@@ -397,14 +396,14 @@ void Con_Printf (char *fmt, ...)
 	if (cls.state == ca_dedicated)
 		return;		// no graphics mode
 
-// write it to the scrollable buffer
+	// write it to the scrollable buffer
 	Con_Print (msg);
 	
-// update the screen if the console is displayed
+	// update the screen if the console is displayed
 	if (cls.signon != SIGNONS && !scr_disabled_for_loading )
 	{
-	// protect against infinite loop if something in SCR_UpdateScreen calls
-	// Con_Printd
+		// protect against infinite loop if something in SCR_UpdateScreen calls
+		// Con_Printd
 		if (!inupdate)
 		{
 			inupdate = true;
@@ -425,14 +424,14 @@ void Con_DPrintf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
-		
+
 	if (!developer.value)
 		return;			// don't confuse non-developers with techie stuff...
 
-	va_start (argptr,fmt);
-	vsprintf (msg,fmt,argptr);
+	va_start (argptr, fmt);
+	Q_vsnprintf (msg, sizeof(msg), fmt, argptr);
 	va_end (argptr);
-	
+
 	Con_Printf ("%s", msg);
 }
 
@@ -633,6 +632,31 @@ void Con_DrawConsole (int lines, qboolean drawinput)
 	}
 }
 
+/*
+==================
+Con_QuakeBar
+==================
+*/
+const char *Con_QuakeBar (size_t len)
+{
+	size_t	i;
+	static char	bar[42];
+
+	if (len < 2 || len > 40)
+	{
+		return NULL;
+	}
+
+	bar[0] = CON_BAR_LEFT;
+	for (i = 1; i < len - 2; ++i)
+	{
+		bar[i] = CON_BAR_MIDDLE;
+	}
+	bar[i++] = CON_BAR_RIGHT;
+	bar[i++] = 0;
+
+	return bar;
+}
 
 /*
 ==================
@@ -642,14 +666,17 @@ Con_NotifyBox
 void Con_NotifyBox (char *text)
 {
 	double		t1, t2;
+	const char	*bar;
 
-// during startup for sound / cd warnings
-	Con_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+	bar = Con_QuakeBar(40);
 
-	Con_Printf (text);
+	// during startup for sound / cd warnings
+	Con_Printf("\n\n%s\n", bar);
+
+	Con_Printf ("%s", text);
 
 	Con_Printf ("Press a key.\n");
-	Con_Printf("\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+	Con_Printf("%s\n", bar);
 
 	key_count = -2;		// wait for a key down and up
 	key_dest = key_console;
@@ -661,7 +688,8 @@ void Con_NotifyBox (char *text)
 		Sys_SendKeyEvents ();
 		t2 = Sys_FloatTime ();
 		realtime += t2-t1;		// make the cursor blink
-	} while (key_count < 0);
+	}
+	while (key_count < 0);
 
 	Con_Printf ("\n");
 	key_dest = key_game;

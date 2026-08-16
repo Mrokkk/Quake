@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef BAN_TEST
 #if defined(_WIN32)
 #include <windows.h>
-#elif defined (NeXT)
+#elif defined (NeXT) || defined (__unix__)
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #else
@@ -99,8 +99,8 @@ char *StrAddr (struct qsockaddr *addr)
 
 
 #ifdef BAN_TEST
-unsigned long banAddr = 0x00000000;
-unsigned long banMask = 0xffffffff;
+unsigned int banAddr = 0x00000000;
+unsigned int banMask = 0xffffffff;
 
 void NET_Ban_f (void)
 {
@@ -282,6 +282,7 @@ qboolean Datagram_CanSendMessage (qsocket_t *sock)
 
 qboolean Datagram_CanSendUnreliableMessage (qsocket_t *sock)
 {
+	Q_UNUSED(sock);
 	return true;
 }
 
@@ -335,7 +336,7 @@ int	Datagram_GetMessage (qsocket_t *sock)
 		if (length == 0)
 			break;
 
-		if (length == -1)
+		if ((int)length == -1)
 		{
 			Con_Printf("Read error\n");
 			return -1;
@@ -529,16 +530,16 @@ static void Test_Poll(void *data)
 	int		colors;
 	int		frags;
 	int		connectTime;
-	byte	playerNumber;
+	byte	playerNumber = 0;
 
-	UNUSED(data);
+	Q_UNUSED(data && playerNumber);
 
 	net_landriverlevel = testDriver;
 
 	while (1)
 	{
 		len = dfunc.Read (testSocket, net_message.data, net_message.maxsize, &clientaddr);
-		if (len < sizeof(int))
+		if (len < (int)sizeof(int))
 			break;
 
 		net_message.cursize = len;
@@ -548,7 +549,7 @@ static void Test_Poll(void *data)
 		MSG_ReadLong();
 		if (control == -1)
 			break;
-		if ((control & (~NETFLAG_LENGTH_MASK)) !=  NETFLAG_CTL)
+		if ((control & (~NETFLAG_LENGTH_MASK)) !=  (int)NETFLAG_CTL)
 			break;
 		if ((control & NETFLAG_LENGTH_MASK) != len)
 			break;
@@ -557,11 +558,11 @@ static void Test_Poll(void *data)
 			Sys_Error("Unexpected repsonse to Player Info request\n");
 
 		playerNumber = MSG_ReadByte();
-		Q_strcpy(name, MSG_ReadString());
+		MSG_ReadString_Safe(name, sizeof(name));
 		colors = MSG_ReadLong();
 		frags = MSG_ReadLong();
 		connectTime = MSG_ReadLong();
-		Q_strcpy(address, MSG_ReadString());
+		MSG_ReadString_Safe(address, sizeof(address));
 
 		Con_Printf("%s\n  frags:%3i  colors:%u %u  time:%u\n  %s\n", name, frags, colors >> 4, colors & 0x0f, connectTime / 60, address);
 	}
@@ -657,13 +658,13 @@ static void Test2_Poll(void *data)
 	char	name[256];
 	char	value[256];
 
-	UNUSED(data);
+	Q_UNUSED(data);
 
 	net_landriverlevel = test2Driver;
 	name[0] = 0;
 
 	len = dfunc.Read (test2Socket, net_message.data, net_message.maxsize, &clientaddr);
-	if (len < sizeof(int))
+	if (len < (int)sizeof(int))
 		goto Reschedule;
 
 	net_message.cursize = len;
@@ -673,7 +674,7 @@ static void Test2_Poll(void *data)
 	MSG_ReadLong();
 	if (control == -1)
 		goto Error;
-	if ((control & (~NETFLAG_LENGTH_MASK)) !=  NETFLAG_CTL)
+	if ((control & (~NETFLAG_LENGTH_MASK)) != (int)NETFLAG_CTL)
 		goto Error;
 	if ((control & NETFLAG_LENGTH_MASK) != len)
 		goto Error;
@@ -681,10 +682,11 @@ static void Test2_Poll(void *data)
 	if (MSG_ReadByte() != CCREP_RULE_INFO)
 		goto Error;
 
-	Q_strcpy(name, MSG_ReadString());
-	if (name[0] == 0)
+	if (!MSG_ReadString_Safe(name, sizeof(name)))
+	{
 		goto Done;
-	Q_strcpy(value, MSG_ReadString());
+	}
+	MSG_ReadString_Safe(value, sizeof(value));
 
 	Con_Printf("%-16.16s  %-16.16s\n", name, value);
 
@@ -851,7 +853,7 @@ static qsocket_t *_Datagram_CheckNewConnections (void)
 	SZ_Clear(&net_message);
 
 	len = dfunc.Read (acceptsock, net_message.data, net_message.maxsize, &clientaddr);
-	if (len < sizeof(int))
+	if (len < (int)sizeof(int))
 		return NULL;
 	net_message.cursize = len;
 
@@ -860,7 +862,7 @@ static qsocket_t *_Datagram_CheckNewConnections (void)
 	MSG_ReadLong();
 	if (control == -1)
 		return NULL;
-	if ((control & (~NETFLAG_LENGTH_MASK)) !=  NETFLAG_CTL)
+	if ((control & (~NETFLAG_LENGTH_MASK)) != (int)NETFLAG_CTL)
 		return NULL;
 	if ((control & NETFLAG_LENGTH_MASK) != len)
 		return NULL;
@@ -1129,7 +1131,7 @@ static void _Datagram_SearchForHosts (qboolean xmit)
 
 	while ((ret = dfunc.Read (dfunc.controlSock, net_message.data, net_message.maxsize, &readaddr)) > 0)
 	{
-		if (ret < sizeof(int))
+		if (ret < (int)sizeof(int))
 			continue;
 		net_message.cursize = ret;
 
@@ -1146,7 +1148,7 @@ static void _Datagram_SearchForHosts (qboolean xmit)
 		MSG_ReadLong();
 		if (control == -1)
 			continue;
-		if ((control & (~NETFLAG_LENGTH_MASK)) !=  NETFLAG_CTL)
+		if ((control & (~NETFLAG_LENGTH_MASK)) != (int)NETFLAG_CTL)
 			continue;
 		if ((control & NETFLAG_LENGTH_MASK) != ret)
 			continue;
@@ -1166,8 +1168,8 @@ static void _Datagram_SearchForHosts (qboolean xmit)
 
 		// add it
 		hostCacheCount++;
-		Q_strcpy(hostcache[n].name, MSG_ReadString());
-		Q_strcpy(hostcache[n].map, MSG_ReadString());
+		MSG_ReadString_Safe(hostcache[n].name, sizeof(hostcache[n].name));
+		MSG_ReadString_Safe(hostcache[n].map, sizeof(hostcache[n].map));
 		hostcache[n].users = MSG_ReadByte();
 		hostcache[n].maxusers = MSG_ReadByte();
 		if (MSG_ReadByte() != NET_PROTOCOL_VERSION)
@@ -1279,7 +1281,7 @@ static qsocket_t *_Datagram_Connect (char *host)
 					continue;
 				}
 
-				if (ret < sizeof(int))
+				if (ret < (int)sizeof(int))
 				{
 					ret = 0;
 					continue;
@@ -1295,7 +1297,7 @@ static qsocket_t *_Datagram_Connect (char *host)
 					ret = 0;
 					continue;
 				}
-				if ((control & (~NETFLAG_LENGTH_MASK)) !=  NETFLAG_CTL)
+				if ((control & (~NETFLAG_LENGTH_MASK)) != (int)NETFLAG_CTL)
 				{
 					ret = 0;
 					continue;
@@ -1333,9 +1335,8 @@ static qsocket_t *_Datagram_Connect (char *host)
 	ret = MSG_ReadByte();
 	if (ret == CCREP_REJECT)
 	{
-		reason = MSG_ReadString();
-		Con_Printf(reason);
-		Q_strncpy(m_return_reason, reason, 31);
+		MSG_ReadString_Safe(m_return_reason, sizeof(m_return_reason));
+		Con_Printf("%s\n", m_return_reason);
 		goto ErrorReturn;
 	}
 
@@ -1392,3 +1393,5 @@ qsocket_t *Datagram_Connect (char *host)
 				break;
 	return ret;
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

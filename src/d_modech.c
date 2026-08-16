@@ -81,9 +81,9 @@ void D_ViewChanged (void)
 			r_refdef.vrectbottom - (d_pix_max << d_y_aspect_shift);
 
 	{
-		int		i;
+		size_t	i;
 
-		for (i=0 ; i<vid.height; i++)
+		for (i = 0; i < vid.height; i++)
 		{
 			d_scantable[i] = i*rowbytes;
 			zspantable[i] = d_pzbuffer + i*d_zwidth;
@@ -92,4 +92,6 @@ void D_ViewChanged (void)
 
 	D_Patch ();
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :
 

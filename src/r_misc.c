@@ -378,7 +378,7 @@ void R_SetupFrame (void)
 		if ((surface_p - surfaces) > r_maxsurfsseen)
 			r_maxsurfsseen = surface_p - surfaces;
 
-		Con_Printf ("Used %d of %d surfs; %d max\n", surface_p - surfaces,
+		Con_Printf ("Used %ld of %ld surfs; %d max\n", surface_p - surfaces,
 				surf_max - surfaces, r_maxsurfsseen);
 	}
 
@@ -436,8 +436,8 @@ r_refdef.viewangles[2]=    0;
 	{
 		if (r_dowarp)
 		{
-			if ((vid.width <= vid.maxwarpwidth) &&
-				(vid.height <= vid.maxwarpheight))
+			if (((int)vid.width <= vid.maxwarpwidth) &&
+				((int)vid.height <= vid.maxwarpheight))
 			{
 				vrect.x = 0;
 				vrect.y = 0;

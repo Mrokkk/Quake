@@ -314,7 +314,7 @@ void NET_Slist_f (void)
 
 static void Slist_Send(void *data)
 {
-	UNUSED(data);
+	Q_UNUSED(data);
 	for (net_driverlevel=0; net_driverlevel < net_numdrivers; net_driverlevel++)
 	{
 		if (!slistLocal && net_driverlevel == 0)
@@ -331,7 +331,7 @@ static void Slist_Send(void *data)
 
 static void Slist_Poll(void *data)
 {
-	UNUSED(data);
+	Q_UNUSED(data);
 	for (net_driverlevel=0; net_driverlevel < net_numdrivers; net_driverlevel++)
 	{
 		if (!slistLocal && net_driverlevel == 0)

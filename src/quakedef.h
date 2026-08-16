@@ -60,9 +60,6 @@ void	VID_UnlockBuffer (void);
 
 #define CACHE_SIZE	64		// used to align key data structures
 
-#define UNUSED(x)			((void)(x))	// for pesky compiler / lint warnings
-#define PRINTF_FORMAT(fmt)	__attribute__((format(printf, fmt, fmt + 1)))
-
 #define	MINIMUM_MEMORY			0x550000
 #define	MINIMUM_MEMORY_LEVELPAK	(MINIMUM_MEMORY + 0x100000)
 
@@ -79,7 +76,7 @@ void	VID_UnlockBuffer (void);
 
 
 #define	MAX_QPATH		64			// max length of a quake game pathname
-#define	MAX_OSPATH		128			// max length of a filesystem pathname
+#define	MAX_OSPATH		0x1000			// max length of a filesystem pathname
 
 #define	ON_EPSILON		0.1			// point on plane side epsilon
 

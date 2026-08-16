@@ -79,3 +79,5 @@ unsigned short CRC_Value(unsigned short crcvalue)
 {
 	return crcvalue ^ CRC_XOR_VALUE;
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

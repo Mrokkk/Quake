@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void CDAudio_Play(byte track, qboolean looping)
 {
+	Q_UNUSED(track && looping);
 }
 
 
@@ -53,3 +54,5 @@ int CDAudio_Init(void)
 void CDAudio_Shutdown(void)
 {
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

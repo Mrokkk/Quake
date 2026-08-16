@@ -474,22 +474,26 @@ int		loadable[MAX_SAVEGAMES];
 
 void M_ScanSaves (void)
 {
-	int		i, j;
+	int		i, j, res;
 	char	name[MAX_OSPATH];
 	FILE	*f;
 	int		version;
 
-	for (i=0 ; i<MAX_SAVEGAMES ; i++)
+	for (i = 0; i < MAX_SAVEGAMES; i++)
 	{
-		strcpy (m_filenames[i], "--- UNUSED SLOT ---");
+		strcpy (m_filenames[i], "--- Q_UNUSED SLOT ---");
 		loadable[i] = false;
-		sprintf (name, "%s/s%i.sav", com_gamedir, i);
+		if ((res = Q_snprintf (name, sizeof(name), "%s/s%i.sav", com_gamedir, i)) >= (int)sizeof(name))
+		{
+			Con_Printf("Save name truncated: '%s'\n", name);
+			continue;
+		}
 		f = fopen (name, "r");
 		if (!f)
 			continue;
 		fscanf (f, "%i\n", &version);
 		fscanf (f, "%79s\n", name);
-		strncpy (m_filenames[i], name, sizeof(m_filenames[i])-1);
+		Q_strlcpy (m_filenames[i], name, sizeof(m_filenames[i]));
 
 	// change _ back to space
 		for (j=0 ; j<SAVEGAME_COMMENT_LENGTH ; j++)
@@ -718,8 +722,8 @@ void M_Menu_Setup_f (void)
 	key_dest = key_menu;
 	m_state = m_setup;
 	m_entersound = true;
-	Q_strcpy(setup_myname, cl_name.string);
-	Q_strcpy(setup_hostname, hostname.string);
+	Q_strlcpy(setup_myname, cl_name.string, sizeof(setup_myname));
+	Q_strlcpy(setup_hostname, hostname.string, sizeof(setup_hostname));
 	setup_top = setup_oldtop = ((int)cl_color.value) >> 4;
 	setup_bottom = setup_oldbottom = ((int)cl_color.value) & 15;
 }
@@ -1406,7 +1410,7 @@ void M_UnbindCommand (char *command)
 
 void M_Keys_Draw (void)
 {
-	size_t	i, l;
+	size_t	i;
 	int		keys[2];
 	char	*name;
 	int		x, y;
@@ -1426,8 +1430,6 @@ void M_Keys_Draw (void)
 		y = 48 + 8*i;
 
 		M_Print (16, y, bindnames[i][1]);
-
-		l = strlen (bindnames[i][0]);
 
 		M_FindKeysForCommand (bindnames[i][0], keys);
 
@@ -2872,6 +2874,7 @@ void M_Search_Draw (void)
 
 void M_Search_Key (int key)
 {
+	Q_UNUSED(key);
 }
 
 //=============================================================================
@@ -3014,7 +3017,9 @@ void M_Draw (void)
 			VID_LockBuffer ();
 		}
 		else
+		{
 			Draw_FadeScreen ();
+		}
 
 		scr_fullupdate = 0;
 	}

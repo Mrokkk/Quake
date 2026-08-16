@@ -332,4 +332,4 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	return surface->cachespots[miplevel];
 }
 
-
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

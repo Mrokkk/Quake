@@ -391,4 +391,4 @@ void CL_UpdateTEnts (void)
 	
 }
 
-
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

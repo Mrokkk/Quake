@@ -355,6 +355,8 @@ void Hunk_Print (qboolean all)
 	int		totalblocks;
 	char	name[9];
 
+	Q_UNUSED(count);
+
 	name[8] = 0;
 	count = 0;
 	sum = 0;

@@ -954,29 +954,33 @@ void V_CalcRefdef (void)
 	view->frame = cl.stats[STAT_WEAPONFRAME];
 	view->colormap = vid.colormap;
 
-// set up the refresh position
+	// set up the refresh position
 	VectorAdd (r_refdef.viewangles, cl.punchangle, r_refdef.viewangles);
 
-// smooth out stair step ups
-if (cl.onground && ent->origin[2] - oldz > 0)
-{
-	float steptime;
-	
-	steptime = cl.time - cl.oldtime;
-	if (steptime < 0)
-//FIXME		I_Error ("steptime < 0");
-		steptime = 0;
+	// smooth out stair step ups
+	if (cl.onground && ent->origin[2] - oldz > 0)
+	{
+		float steptime;
 
-	oldz += steptime * 80;
-	if (oldz > ent->origin[2])
+		steptime = cl.time - cl.oldtime;
+		if (steptime < 0)
+		{
+			//FIXME		I_Error ("steptime < 0");
+			steptime = 0;
+		}
+
+		oldz += steptime * 80;
+		if (oldz > ent->origin[2])
+			oldz = ent->origin[2];
+		if (ent->origin[2] - oldz > 12)
+			oldz = ent->origin[2] - 12;
+		r_refdef.vieworg[2] += oldz - ent->origin[2];
+		view->origin[2] += oldz - ent->origin[2];
+	}
+	else
+	{
 		oldz = ent->origin[2];
-	if (ent->origin[2] - oldz > 12)
-		oldz = ent->origin[2] - 12;
-	r_refdef.vieworg[2] += oldz - ent->origin[2];
-	view->origin[2] += oldz - ent->origin[2];
-}
-else
-	oldz = ent->origin[2];
+	}
 
 	if (chase_active.value)
 		Chase_Update ();

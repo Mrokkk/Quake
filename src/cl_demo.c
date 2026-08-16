@@ -195,9 +195,8 @@ record <demoname> <map> [cd track]
 */
 void CL_Record_f (void)
 {
-	int		c;
+	int		c, track, res;
 	char	name[MAX_OSPATH];
-	int		track;
 
 	if (cmd_source != src_command)
 		return;
@@ -230,7 +229,10 @@ void CL_Record_f (void)
 	else
 		track = -1;	
 
-	sprintf (name, "%s/%s", com_gamedir, Cmd_Argv(1));
+	if ((res = Q_snprintf (name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1))) >= (int)sizeof(name))
+	{
+		Con_Printf ("Name too long\n");
+	}
 	
 //
 // start the map up
@@ -365,3 +367,4 @@ void CL_TimeDemo_f (void)
 	cls.td_lastframe = -1;		// get a new message this frame
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

@@ -657,7 +657,7 @@ void SV_WriteClientdataToMessage (edict_t *ent, sizebuf_t *msg)
 		bits |= SU_ARMOR;
 
 //	if (ent->v.weapon)
-		bits |= SU_WEAPON;
+	bits |= SU_WEAPON;
 
 // send the data
 
@@ -984,7 +984,7 @@ Tell all the clients that the server is changing levels
 */
 void SV_SendReconnect (void)
 {
-	char	data[128];
+	byte		data[128];
 	sizebuf_t	msg;
 
 	msg.data = data;

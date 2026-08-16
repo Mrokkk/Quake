@@ -90,3 +90,4 @@ void Chase_Update (void)
 	VectorCopy (chase_dest, r_refdef.vieworg);
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

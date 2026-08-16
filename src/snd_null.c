@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cvar_t bgmvolume = {"bgmvolume", "1", true};
 cvar_t volume = {"volume", "0.7", true};
 
- 
 void S_Init (void)
 {
 }
@@ -44,6 +43,7 @@ void S_Shutdown (void)
 
 void S_TouchSound (char *sample)
 {
+	Q_UNUSED(sample);
 }
 
 void S_ClearBuffer (void)
@@ -52,18 +52,22 @@ void S_ClearBuffer (void)
 
 void S_StaticSound (sfx_t *sfx, vec3_t origin, float vol, float attenuation)
 {
+	Q_UNUSED(sfx && origin && vol && attenuation);
 }
 
-void S_StartSound (int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float fvol,  float attenuation)
+void S_StartSound (int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float fvol, float attenuation)
 {
+	Q_UNUSED(entnum && entchannel && sfx && origin && fvol && attenuation);
 }
 
 void S_StopSound (int entnum, int entchannel)
 {
+	Q_UNUSED(entnum && entchannel);
 }
 
 sfx_t *S_PrecacheSound (char *sample)
 {
+	Q_UNUSED(sample);
 	return NULL;
 }
 
@@ -72,11 +76,13 @@ void S_ClearPrecache (void)
 }
 
 void S_Update (vec3_t origin, vec3_t v_forward, vec3_t v_right, vec3_t v_up)
-{	
+{
+	Q_UNUSED(origin && v_forward && v_right && v_up);
 }
 
 void S_StopAllSounds (qboolean clear)
 {
+	Q_UNUSED(clear);
 }
 
 void S_BeginPrecaching (void)
@@ -93,5 +99,7 @@ void S_ExtraUpdate (void)
 
 void S_LocalSound (char *s)
 {
+	Q_UNUSED(s);
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

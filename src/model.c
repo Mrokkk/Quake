@@ -190,20 +190,22 @@ model_t *Mod_FindName (char *name)
 	model_t	*avail = NULL;
 
 	if (!name[0])
-		Sys_Error ("Mod_ForName: NULL name");
-		
-//
-// search the currently loaded models
-//
+	{
+		Sys_Error_f ("NULL name");
+	}
+
+	//
+	// search the currently loaded models
+	//
 	for (i=0 , mod=mod_known ; i<mod_numknown ; i++, mod++)
 	{
-		if (!strcmp (mod->name, name) )
+		if (!strcmp (mod->name, name))
 			break;
 		if (mod->needload == NL_UNREFERENCED)
 			if (!avail || mod->type != mod_alias)
 				avail = mod;
 	}
-			
+
 	if (i == mod_numknown)
 	{
 		if (mod_numknown == MAX_MOD_KNOWN)
@@ -220,7 +222,11 @@ model_t *Mod_FindName (char *name)
 		}
 		else
 			mod_numknown++;
-		strcpy (mod->name, name);
+
+		if (Q_strlcpy (mod->name, name, sizeof(mod->name)) > sizeof(mod->name))
+		{
+			Sys_Error_f("model name too long: '%s'\n", name);
+		}
 		mod->needload = NL_NEEDS_LOADED;
 	}
 
@@ -663,7 +669,7 @@ void Mod_LoadTexinfo (lump_t *l)
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
 		for (j=0 ; j<8 ; j++)
-			out->vecs[0][j] = LittleFloat (in->vecs[0][j]);
+			out->fvecs[0][j] = LittleFloat (in->fvecs[0][j]);
 		len1 = Length (out->vecs[0]);
 		len2 = Length (out->vecs[1]);
 		len1 = (len1 + len2)/2;
@@ -1157,7 +1163,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 // swap all the lumps
 	mod_base = (byte *)header;
 
-	for (i=0 ; i<sizeof(dheader_t)/4 ; i++)
+	for (i = 0; i < (int)sizeof(dheader_t) / 4; i++)
 		((int *)header)[i] = LittleLong ( ((int *)header)[i]);
 
 // load into heap
@@ -1208,9 +1214,9 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 
 		if (i < mod->numsubmodels-1)
 		{	// duplicate the basic information
-			char	name[10];
+			char	name[16];
 
-			sprintf (name, "*%i", i+1);
+			Q_snprintf (name, sizeof(name), "*%i", i+1);
 			loadmodel = Mod_FindName (name);
 			*loadmodel = *mod;
 			strcpy (loadmodel->name, name);
@@ -1871,4 +1877,4 @@ void Mod_Print (void)
 	}
 }
 
-
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_edge.c
 
+#include <limits.h>
+
 #include "quakedef.h"
 #include "r_local.h"
 
@@ -675,7 +677,7 @@ void R_ScanEdges (void)
 	edge_aftertail.prev = &edge_tail;
 
 // FIXME: do we need this now that we clamp x in r_draw.c?
-	edge_sentinel.u = 2000 << 24;		// make sure nothing sorts past this
+	edge_sentinel.u = INT_MAX;		// make sure nothing sorts past this
 	edge_sentinel.prev = &edge_aftertail;
 
 //	
@@ -749,4 +751,4 @@ void R_ScanEdges (void)
 		D_DrawSurfaces ();
 }
 
-
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

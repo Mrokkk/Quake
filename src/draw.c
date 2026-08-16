@@ -191,7 +191,7 @@ smoothly scrolled off.
 static void Draw_Character_Impl (int x, int y, int num)
 {
 	byte	*dest, *source, pixel;
-	int		drawline, source_drawline;
+	int		source_drawline;
 	int		row, col, i, j, k, scale;
 
 	scale = scr_scaling;
@@ -214,7 +214,6 @@ static void Draw_Character_Impl (int x, int y, int num)
 
 	if (y < 0)
 	{	// clipped
-		drawline = CHAR_HEIGHT * scale + y;
 		source_drawline = CHAR_HEIGHT + y;
 		source -= 128 * y / scale;
 		y = 0;
@@ -222,7 +221,6 @@ static void Draw_Character_Impl (int x, int y, int num)
 	else
 	{
 		source_drawline = CHAR_HEIGHT;
-		drawline = CHAR_HEIGHT * scale;
 	}
 
 	dest = vid.conbuffer + y * vid.conrowbytes + x;
@@ -298,7 +296,7 @@ static void Draw_Pic_Impl(int x, int y, qpic_t *pic)
 	if (x < 0 || (unsigned)(x + pic->width * scr_scaling) > vid.width || y < 0 ||
 		(unsigned)(y + pic->height * scr_scaling) > vid.height)
 	{
-		Sys_Error ("%s: bad coordinates: %u, %u\n", __func__, x, y);
+		Sys_Error_f ("bad coordinates: %u, %u\n", x, y);
 	}
 
 	w = pic->width;
@@ -358,7 +356,7 @@ static void Draw_TransPic_Impl (int x, int y, qpic_t *pic)
 	if (x < 0 || (unsigned)(x + pic->width * scr_scaling) > vid.width || y < 0 ||
 		(unsigned)(y + pic->height * scr_scaling) > vid.height)
 	{
-		Sys_Error ("%s: bad coordinates: %u, %u\n", __func__, x, y);
+		Sys_Error_f ("bad coordinates: %u, %u\n", x, y);
 	}
 
 	w = pic->width;
@@ -421,7 +419,7 @@ static void Draw_TransPicTranslate_Impl (int x, int y, qpic_t *pic, byte *transl
 	if (x < 0 || (unsigned)(x + pic->width) > vid.width || y < 0 ||
 		(unsigned)(y + pic->height) > vid.height)
 	{
-		Sys_Error ("Draw_TransPic: bad coordinates");
+		Sys_Error_f ("bad coordinates: %u, %u\n", x, y);
 	}
 
 	w = pic->width;

@@ -196,9 +196,29 @@ void Q_strncpy (char *dest, char *src, int count)
 		*dest++ = 0;
 }
 
+size_t Q_strlcpy (char *dst, const char *src, size_t size)
+{
+	size_t len = strlen(src);
+
+	if (Q_UNLIKELY(len >= size))
+	{
+		if (Q_LIKELY(size))
+		{
+			memcpy(dst, src, size);
+			dst[size - 1] = '\0';
+		}
+	}
+	else
+	{
+		memcpy(dst, src, len + 1);
+	}
+
+	return len;
+}
+
 int Q_strlen (char *str)
 {
-	int             count;
+	int count;
 	
 	count = 0;
 	while (str[count])
@@ -698,9 +718,10 @@ float MSG_ReadFloat (void)
 
 char *MSG_ReadString (void)
 {
-	static char     string[2048];
-	int             l,c;
-	
+	static char		string[2048];
+	size_t			l;
+	int				c;
+
 	l = 0;
 	do
 	{
@@ -710,10 +731,32 @@ char *MSG_ReadString (void)
 		string[l] = c;
 		l++;
 	} while (l < sizeof(string)-1);
-	
+
 	string[l] = 0;
-	
+
 	return string;
+}
+
+size_t MSG_ReadString_Safe (char *buf, size_t size)
+{
+	int		c;
+	size_t	read = 0;
+
+	// Make room for null byte
+	size--;
+
+	while (size--)
+	{
+		c = MSG_ReadChar ();
+		if (c == -1 || c == 0)
+			break;
+		*buf++ = c;
+		read++;
+	}
+
+	*buf = 0;
+
+	return read;
 }
 
 float MSG_ReadCoord (void)
@@ -858,15 +901,14 @@ COM_FileBase
 void COM_FileBase (char *in, char *out)
 {
 	char *s, *s2;
-	
+
 	s = in + strlen(in) - 1;
-	
+
 	while (s != in && *s != '.')
 		s--;
-	
-	for (s2 = s ; s2 >= in && *s2 && *s2 != '/' ; s2--)
-	;
-	
+
+	for (s2 = s ; s2 >= in && *s2 && *s2 != '/' ; s2--);
+
 	if (s-s2 < 2)
 		strcpy (out,"?model?");
 	else
@@ -1128,6 +1170,8 @@ void COM_Init (char *basedir)
 {
 	byte    swaptest[2] = {1,0};
 
+	Q_UNUSED(basedir);
+
 // set the byte swapping variables in a portable manner 
 	if ( *(short *)swaptest == 1)
 	{
@@ -1282,19 +1326,23 @@ The filename will be prefixed by the current game directory
 */
 void COM_WriteFile (char *filename, void *data, int len)
 {
-	int             handle;
-	char    name[MAX_OSPATH];
+	int		handle, res;
+	char	name[MAX_OSPATH];
 	
-	sprintf (name, "%s/%s", com_gamedir, filename);
+	if ((res = Q_snprintf (name, sizeof(name), "%s/%s", com_gamedir, filename)) >= (int)sizeof(name))
+	{
+		Sys_Printf_f ("filename too long (%u >= %zu): \"%s/%s\"\n", res, sizeof(name), com_gamedir, filename);
+		return;
+	}
 
 	handle = Sys_FileOpenWrite (name);
 	if (handle == -1)
 	{
-		Sys_Printf ("COM_WriteFile: failed on %s\n", name);
+		Sys_Printf_f ("failed on %s\n", name);
 		return;
 	}
 	
-	Sys_Printf ("COM_WriteFile: %s\n", name);
+	Sys_Printf_f ("%s\n", name);
 	Sys_FileWrite (handle, data, len);
 	Sys_FileClose (handle);
 }
@@ -1333,14 +1381,14 @@ needed.  This is for the convenience of developers using ISDN from home.
 */
 void COM_CopyFile (char *netpath, char *cachepath)
 {
-	int             in, out;
-	int             remaining, count;
-	char    buf[4096];
-	
-	remaining = Sys_FileOpenRead (netpath, &in);            
+	int		in, out;
+	size_t	remaining, count;
+	char	buf[4096];
+
+	remaining = Sys_FileOpenRead (netpath, &in);
 	COM_CreatePath (cachepath);     // create directories up to the cache file
 	out = Sys_FileOpenWrite (cachepath);
-	
+
 	while (remaining)
 	{
 		if (remaining < sizeof(buf))
@@ -1353,7 +1401,7 @@ void COM_CopyFile (char *netpath, char *cachepath)
 	}
 
 	Sys_FileClose (in);
-	Sys_FileClose (out);    
+	Sys_FileClose (out);
 }
 
 /*
@@ -1366,18 +1414,18 @@ Sets com_filesize and one of handle or file
 */
 int COM_FindFile (char *filename, int *handle, FILE **file)
 {
-	searchpath_t    *search;
-	char            netpath[MAX_OSPATH];
-	char            cachepath[MAX_OSPATH];
-	pack_t          *pak;
-	int                     i;
-	int                     findtime, cachetime;
+	searchpath_t	*search;
+	char			netpath[MAX_OSPATH];
+	char			cachepath[MAX_OSPATH];
+	pack_t			*pak;
+	int				i, res;
+	int				findtime, cachetime;
 
 	if (file && handle)
-		Sys_Error ("COM_FindFile: both handle and file set");
+		Sys_Error_f ("both handle and file set\n");
 	if (!file && !handle)
-		Sys_Error ("COM_FindFile: neither handle or file set");
-		
+		Sys_Error_f ("neither handle or file set\n");
+
 //
 // search through the path, one element at a time
 //
@@ -1398,7 +1446,7 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 			for (i=0 ; i<pak->numfiles ; i++)
 				if (!strcmp (pak->files[i].name, filename))
 				{       // found it!
-					Sys_Printf ("PackFile: %s : %s\n",pak->filename, filename);
+					Sys_DPrintf ("PackFile: %s : %s\n",pak->filename, filename);
 					if (handle)
 					{
 						*handle = pak->handle;
@@ -1423,7 +1471,11 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 					continue;
 			}
 			
-			sprintf (netpath, "%s/%s",search->filename, filename);
+			if ((res = Q_snprintf (netpath, sizeof(netpath), "%s/%s", search->filename, filename)) >= (int)sizeof(netpath))
+			{
+				Sys_Printf_f("filename too long: \"%s/%s\"\n", search->filename, filename);
+				continue;
+			}
 			
 			findtime = Sys_FileTime (netpath);
 			if (findtime == -1)
@@ -1436,12 +1488,18 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 			{	
 #if defined(_WIN32)
 				if ((strlen(netpath) < 2) || (netpath[1] != ':'))
-					sprintf (cachepath,"%s%s", com_cachedir, netpath);
+					res = Q_snprintf (cachepath, sizeof(cachepath), "%s%s", com_cachedir, netpath);
 				else
-					sprintf (cachepath,"%s%s", com_cachedir, netpath+2);
+					res = Q_snprintf (cachepath, sizeof(cachepath), "%s%s", com_cachedir, netpath + 2);
 #else
-				sprintf (cachepath,"%s%s", com_cachedir, netpath);
+				res = Q_snprintf (cachepath, sizeof(cachepath), "%s%s", com_cachedir, netpath);
 #endif
+
+				if (res >= (int)sizeof(cachepath))
+				{
+					Sys_Printf_f ("cache path too long\n");
+					continue;
+				}
 
 				cachetime = Sys_FileTime (cachepath);
 			
@@ -1450,7 +1508,7 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 				strcpy (netpath, cachepath);
 			}	
 
-			Sys_Printf ("FindFile: %s\n",netpath);
+			Sys_Printf_f ("%s\n", netpath);
 			com_filesize = Sys_FileOpenRead (netpath, &i);
 			if (handle)
 				*handle = i;
@@ -1464,7 +1522,7 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 		
 	}
 	
-	Sys_Printf ("FindFile: can't find %s\n", filename);
+	Sys_Printf_f ("can't find %s\n", filename);
 	
 	if (handle)
 		*handle = -1;

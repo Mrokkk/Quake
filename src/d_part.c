@@ -199,3 +199,5 @@ void D_DrawParticle (particle_t *pparticle)
 		break;
 	}
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

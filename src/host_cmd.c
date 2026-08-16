@@ -464,29 +464,37 @@ Host_Savegame_f
 */
 void Host_Savegame_f (void)
 {
-	char	name[256];
+	char	name[MAX_OSPATH], *savename;
 	FILE	*f;
-	int		i;
-	char	comment[SAVEGAME_COMMENT_LENGTH+1];
+	int		i, res;
+	char	comment[SAVEGAME_COMMENT_LENGTH + 1];
 
 	if (cmd_source != src_command)
+	{
 		return;
+	}
 
 	if (!sv.active)
 	{
-		Con_Printf ("Not playing a local game.\n");
+		Con_Printf ("Not playing a local game\n");
 		return;
 	}
 
 	if (cl.intermission)
 	{
-		Con_Printf ("Can't save in intermission.\n");
+		Con_Printf ("Can't save in intermission\n");
 		return;
 	}
 
 	if (svs.maxclients != 1)
 	{
-		Con_Printf ("Can't save multiplayer games.\n");
+		Con_Printf ("Can't save multiplayer games\n");
+		return;
+	}
+
+	if (svs.clients[0].active && (svs.clients[0].edict->v.health <= 0))
+	{
+		Con_Printf ("Can't savegame with a dead player\n");
 		return;
 	}
 
@@ -496,22 +504,20 @@ void Host_Savegame_f (void)
 		return;
 	}
 
-	if (strstr(Cmd_Argv(1), ".."))
+	savename = Cmd_Argv(1);
+
+	if (strstr(savename, "..") || strchr(savename, '/'))
 	{
-		Con_Printf ("Relative pathnames are not allowed.\n");
+		Con_Printf ("Relative pathnames are not allowed\n");
 		return;
 	}
-		
-	for (i=0 ; i<svs.maxclients ; i++)
+
+	if ((res = Q_snprintf (name, sizeof(name), "%s/%s", com_gamedir, savename)) >= (int)MAX_OSPATH - 4)
 	{
-		if (svs.clients[i].active && (svs.clients[i].edict->v.health <= 0) )
-		{
-			Con_Printf ("Can't savegame with a dead player\n");
-			return;
-		}
+		Con_Printf ("Save path too long\n");
+		return;
 	}
 
-	sprintf (name, "%s/%s", com_gamedir, Cmd_Argv(1));
 	COM_DefaultExtension (name, ".sav");
 	
 	Con_Printf ("Saving game to %s...\n", name);
@@ -565,7 +571,8 @@ void Host_Loadgame_f (void)
 	char	mapname[MAX_QPATH];
 	float	time, tfloat;
 	char	str[32768], *start;
-	int		i, r;
+	size_t	i;
+	int		r, res;
 	edict_t	*ent;
 	int		entnum;
 	int		version;
@@ -582,7 +589,11 @@ void Host_Loadgame_f (void)
 
 	cls.demonum = -1;		// stop demo loop in case this fails
 
-	sprintf (name, "%s/%s", com_gamedir, Cmd_Argv(1));
+	if ((res = Q_snprintf (name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1))) >= (int)sizeof(name))
+	{
+		Con_Printf("Name too long\n");
+		return;
+	}
 	COM_DefaultExtension (name, ".sav");
 	
 // we can't call SCR_BeginLoadingPlaque, because too much stack space has
@@ -649,7 +660,7 @@ void Host_Loadgame_f (void)
 	entnum = -1;		// -1 is the globals
 	while (!feof(f))
 	{
-		for (i=0 ; i<sizeof(str)-1 ; i++)
+		for (i = 0; i < sizeof(str) - 1; i++)
 		{
 			r = fgetc (f);
 			if (r == EOF || !r)
@@ -1011,7 +1022,7 @@ void Host_Say(qboolean teamonly)
 	client_t *save;
 	int		j;
 	char	*p;
-	unsigned char	text[64];
+	char	text[64];
 	qboolean	fromServer = false;
 
 	if (cmd_source == src_command)
@@ -1516,7 +1527,7 @@ Host_Give_f
 void Host_Give_f (void)
 {
 	char	*t;
-	int		v, w;
+	int		v;
 	eval_t	*val;
 
 	if (cmd_source == src_command)
@@ -1923,3 +1934,5 @@ void Host_InitCommands (void)
 
 	Cmd_AddCommand ("mcache", Mod_Print);
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

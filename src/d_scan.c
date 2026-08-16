@@ -430,3 +430,5 @@ void D_DrawZSpans (espan_t *pspan)
 
 	} while ((pspan = pspan->pnext) != NULL);
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

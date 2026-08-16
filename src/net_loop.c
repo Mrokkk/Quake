@@ -41,11 +41,14 @@ void Loop_Shutdown (void)
 
 void Loop_Listen (qboolean state)
 {
+	Q_UNUSED(state);
 }
 
 
 void Loop_SearchForHosts (qboolean xmit)
 {
+	Q_UNUSED(xmit);
+
 	if (!sv.active)
 		return;
 
@@ -227,6 +230,7 @@ qboolean Loop_CanSendMessage (qsocket_t *sock)
 
 qboolean Loop_CanSendUnreliableMessage (qsocket_t *sock)
 {
+	Q_UNUSED(sock);
 	return true;
 }
 
@@ -243,3 +247,5 @@ void Loop_Close (qsocket_t *sock)
 	else
 		loop_server = NULL;
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

@@ -222,6 +222,7 @@ static int PartialIPAddress (char *in, struct qsockaddr *hostaddr)
 
 int UDP_Connect (int socket, struct qsockaddr *addr)
 {
+	Q_UNUSED(socket && addr);
 	return 0;
 }
 
@@ -248,7 +249,7 @@ int UDP_Read (int socket, byte *buf, int len, struct qsockaddr *addr)
 	int addrlen = sizeof (struct qsockaddr);
 	int ret;
 
-	ret = recvfrom (socket, buf, len, 0, (struct sockaddr *)addr, &addrlen);
+	ret = recvfrom (socket, buf, len, 0, (struct sockaddr *)addr, (socklen_t *)&addrlen);
 	if (ret == -1 && (errno == EWOULDBLOCK || errno == ECONNREFUSED))
 		return 0;
 	return ret;
@@ -337,7 +338,7 @@ int UDP_GetSocketAddr (int socket, struct qsockaddr *addr)
 	unsigned int a;
 
 	Q_memset(addr, 0, sizeof(struct qsockaddr));
-	getsockname(socket, (struct sockaddr *)addr, &addrlen);
+	getsockname(socket, (struct sockaddr *)addr, (socklen_t *)&addrlen);
 	a = ((struct sockaddr_in *)addr)->sin_addr.s_addr;
 	if (a == 0 || a == inet_addr("127.0.0.1"))
 		((struct sockaddr_in *)addr)->sin_addr.s_addr = myAddr;

@@ -110,12 +110,12 @@ void CL_ParseStartSoundPacket(void)
 	           
     field_mask = MSG_ReadByte(); 
 
-    if (field_mask & SND_VOLUME)
+	if (field_mask & SND_VOLUME)
 		volume = MSG_ReadByte ();
 	else
 		volume = DEFAULT_SOUND_PACKET_VOLUME;
-	
-    if (field_mask & SND_ATTENUATION)
+
+	if (field_mask & SND_ATTENUATION)
 		attenuation = MSG_ReadByte () / 64.0;
 	else
 		attenuation = DEFAULT_SOUND_PACKET_ATTENUATION;
@@ -210,12 +210,11 @@ void CL_ParseServerInfo (void)
 	char	sound_precache[MAX_SOUNDS][MAX_QPATH];
 	
 	Con_DPrintf ("Serverinfo packet received.\n");
-//
-// wipe the client_state_t struct
-//
+
+	// wipe the client_state_t struct
 	CL_ClearState ();
 
-// parse protocol version number
+	// parse protocol version number
 	i = MSG_ReadLong ();
 	if (i != PROTOCOL_VERSION)
 	{
@@ -223,7 +222,7 @@ void CL_ParseServerInfo (void)
 		return;
 	}
 
-// parse maxclients
+	// parse maxclients
 	cl.maxclients = MSG_ReadByte ();
 	if (cl.maxclients < 1 || cl.maxclients > MAX_SCOREBOARD)
 	{
@@ -232,64 +231,62 @@ void CL_ParseServerInfo (void)
 	}
 	cl.scores = Hunk_AllocName (cl.maxclients*sizeof(*cl.scores), "scores");
 
-// parse gametype
+	// parse gametype
 	cl.gametype = MSG_ReadByte ();
 
-// parse signon message
-	str = MSG_ReadString ();
-	strncpy (cl.levelname, str, sizeof(cl.levelname)-1);
+	// parse signon message
+	MSG_ReadString_Safe (cl.levelname, sizeof(cl.levelname));
 
-#if 0 // what's the purpose of that?
-// seperate the printfs so the server message can have a color
-	Con_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n\n");
-	Con_Printf ("%c%s\n", 2, str);
-#else
-	Con_Printf ("\n");
-#endif
+	// seperate the printfs so the server message can have a color
+	Con_Printf ("\n\n%s\n\n", Con_QuakeBar(40));
+	Con_Printf ("%c%s\n", CON_COLOR_2, cl.levelname);
 
-//
-// first we go through and touch all of the precache data that still
-// happens to be in the cache, so precaching something else doesn't
-// needlessly purge it
-//
+	//
+	// first we go through and touch all of the precache data that still
+	// happens to be in the cache, so precaching something else doesn't
+	// needlessly purge it
+	//
 
-// precache models
+	// precache models
 	memset (cl.model_precache, 0, sizeof(cl.model_precache));
-	for (nummodels=1 ; ; nummodels++)
+	for (nummodels = 1; ; nummodels++)
 	{
-		str = MSG_ReadString ();
-		if (!str[0])
-			break;
-		if (nummodels==MAX_MODELS)
+		if (nummodels == MAX_MODELS)
 		{
 			Con_Printf ("Server sent too many model precaches\n");
 			return;
 		}
-		strcpy (model_precache[nummodels], str);
+
+		str = model_precache[nummodels];
+		if (!MSG_ReadString_Safe (str, sizeof(*model_precache)))
+		{
+			break;
+		}
 		Mod_TouchModel (str);
 	}
 
-// precache sounds
+	// precache sounds
 	memset (cl.sound_precache, 0, sizeof(cl.sound_precache));
-	for (numsounds=1 ; ; numsounds++)
+	for (numsounds = 1; ; numsounds++)
 	{
-		str = MSG_ReadString ();
-		if (!str[0])
-			break;
-		if (numsounds==MAX_SOUNDS)
+		if (numsounds == MAX_SOUNDS)
 		{
 			Con_Printf ("Server sent too many sound precaches\n");
 			return;
 		}
-		strcpy (sound_precache[numsounds], str);
+
+		str = sound_precache[numsounds];
+		if (!MSG_ReadString_Safe (str, sizeof(*sound_precache)))
+		{
+			break;
+		}
 		S_TouchSound (str);
 	}
 
-//
-// now we try to load everything else until a cache allocation fails
-//
-
-	for (i=1 ; i<nummodels ; i++)
+	//
+	// now we try to load everything else until a cache allocation fails
+	//
+	for (i = 1; i < nummodels; i++)
 	{
 		cl.model_precache[i] = Mod_ForName (model_precache[i], false);
 		if (cl.model_precache[i] == NULL)
@@ -301,15 +298,14 @@ void CL_ParseServerInfo (void)
 	}
 
 	S_BeginPrecaching ();
-	for (i=1 ; i<numsounds ; i++)
+	for (i = 1; i < numsounds; i++)
 	{
 		cl.sound_precache[i] = S_PrecacheSound (sound_precache[i]);
 		CL_KeepaliveMessage ();
 	}
 	S_EndPrecaching ();
 
-
-// local state
+	// local state
 	cl_entities[0].model = cl.worldmodel = cl.model_precache[1];
 	
 	R_NewMap ();
@@ -318,7 +314,6 @@ void CL_ParseServerInfo (void)
 	
 	noclip_anglehack = false;		// noclip is turned off at start	
 }
-
 
 /*
 ==================
@@ -339,7 +334,6 @@ void CL_ParseUpdate (int bits)
 	qboolean	forcelink;
 	entity_t	*ent;
 	int			num;
-	int			skin;
 
 	if (cls.signon == SIGNONS - 1)
 	{	// first update is the final signon stage
@@ -360,9 +354,9 @@ void CL_ParseUpdate (int bits)
 
 	ent = CL_EntityNum (num);
 
-for (i=0 ; i<16 ; i++)
-if (bits&(1<<i))
-	bitcounts[i]++;
+	for (i=0 ; i<16 ; i++)
+		if (bits&(1<<i))
+			bitcounts[i]++;
 
 	if (ent->msgtime != cl.mtime[1])
 		forcelink = true;	// no previous frame to lerp from
@@ -792,6 +786,7 @@ void CL_ParseServerMessage (void)
 			
 		case svc_disconnect:
 			Host_EndGame ("Server disconnected\n");
+			break;
 
 		case svc_print:
 			Con_Printf ("%s", MSG_ReadString ());
@@ -827,8 +822,7 @@ void CL_ParseServerMessage (void)
 			i = MSG_ReadByte ();
 			if (i >= MAX_LIGHTSTYLES)
 				Sys_Error ("svc_lightstyle > MAX_LIGHTSTYLES");
-			Q_strcpy (cl_lightstyle[i].map,  MSG_ReadString());
-			cl_lightstyle[i].length = Q_strlen(cl_lightstyle[i].map);
+			cl_lightstyle[i].length = MSG_ReadString_Safe(cl_lightstyle[i].map, sizeof(cl_lightstyle[i].map));
 			break;
 			
 		case svc_sound:
@@ -845,7 +839,7 @@ void CL_ParseServerMessage (void)
 			i = MSG_ReadByte ();
 			if (i >= cl.maxclients)
 				Host_Error ("CL_ParseServerMessage: svc_updatename > MAX_SCOREBOARD");
-			strcpy (cl.scores[i].name, MSG_ReadString ());
+			MSG_ReadString_Safe (cl.scores[i].name, sizeof(cl.scores[i].name));
 			break;
 			
 		case svc_updatefrags:
@@ -965,3 +959,4 @@ void CL_ParseServerMessage (void)
 	}
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

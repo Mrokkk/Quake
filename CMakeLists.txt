@@ -12,6 +12,11 @@ option(OPTIMIZE    "Enable compiler optimizations" ${DEF_OPTIMIZE})
 option(LTO         "Enable Link Time Optimization" ${DEF_LTO})
 option(SANITIZE    "Enable ASan and UBsan"         OFF)
 option(PROFILE     "Enable profiling"              OFF)
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    option(ANALYZER    "Enable GCC's static analyzer"  OFF)
+else()
+    set(ANALYZER OFF CACHE INTERNAL "")
+endif()
 
 if(NOT PLATFORM)
     set(PLATFORM "X11" CACHE STRING "Used platform")
@@ -51,9 +56,11 @@ endif()
 add_compile_options(-include "${PROJECT_SOURCE_DIR}/src/cpp_interop.h")
 
 # Diagnostics
-add_compile_options(-Wall -Wextra -Wno-trigraphs -Wno-unused-parameter -Wno-unused-but-set-variable -Wno-missing-field-initializers)
+add_compile_options(-Wall -Wextra -Wno-trigraphs -Wno-missing-field-initializers)
 
-add_compile_definitions(-Dstricmp=strcasecmp)
+if(ANALYZER AND "${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    add_compile_options(-fanalyzer)
+endif()
 
 add_executable(${PROJECT_NAME}
 
@@ -162,6 +169,9 @@ message(STATUS "Enable compiler optimizations: ${OPTIMIZE}")
 message(STATUS "Enable Link Time Optimization: ${LTO}")
 message(STATUS "Enable ASan and UBsan:         ${SANITIZE}")
 message(STATUS "Enable profiling:              ${PROFILE}")
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+    message(STATUS "Enable GCC's static analyzer:  ${ANALYZER}")
+endif()
 message(STATUS "Platform:                      ${PLATFORM}")
 message(STATUS "Install binary dir:            ${CMAKE_INSTALL_FULL_BINDIR}")
 message(STATUS "Install data dir:              ${CMAKE_INSTALL_FULL_DATADIR}")

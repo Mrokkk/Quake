@@ -35,5 +35,7 @@ void IN_Commands (void)
 
 void IN_Move (usercmd_t *cmd)
 {
+	Q_UNUSED(cmd);
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

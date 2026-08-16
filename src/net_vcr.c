@@ -67,6 +67,7 @@ void VCR_ReadNext (void)
 
 void VCR_Listen (qboolean state)
 {
+	Q_UNUSED(state);
 }
 
 
@@ -79,7 +80,7 @@ int VCR_GetMessage (qsocket_t *sock)
 {
 	int	ret;
 	
-	if (host_time != next.time || next.op != VCR_OP_GETMESSAGE || next.session != *(long *)(&sock->driverdata))
+	if (host_time != next.time || next.op != VCR_OP_GETMESSAGE || next.session != (long)sock->driverdata)
 		Sys_Error ("VCR missmatch");
 
 	Sys_FileRead(vcrFile, &ret, sizeof(int));
@@ -102,7 +103,9 @@ int VCR_SendMessage (qsocket_t *sock, sizebuf_t *data)
 {
 	int	ret;
 
-	if (host_time != next.time || next.op != VCR_OP_SENDMESSAGE || next.session != *(long *)(&sock->driverdata))
+	Q_UNUSED(data);
+
+	if (host_time != next.time || next.op != VCR_OP_SENDMESSAGE || next.session != (long)sock->driverdata)
 		Sys_Error ("VCR missmatch");
 
 	Sys_FileRead(vcrFile, &ret, sizeof(int));
@@ -117,7 +120,7 @@ qboolean VCR_CanSendMessage (qsocket_t *sock)
 {
 	qboolean	ret;
 
-	if (host_time != next.time || next.op != VCR_OP_CANSENDMESSAGE || next.session != *(long *)(&sock->driverdata))
+	if (host_time != next.time || next.op != VCR_OP_CANSENDMESSAGE || next.session != (long)sock->driverdata)
 		Sys_Error ("VCR missmatch");
 
 	Sys_FileRead(vcrFile, &ret, sizeof(int));
@@ -130,16 +133,19 @@ qboolean VCR_CanSendMessage (qsocket_t *sock)
 
 void VCR_Close (qsocket_t *sock)
 {
+	Q_UNUSED(sock);
 }
 
 
 void VCR_SearchForHosts (qboolean xmit)
 {
+	Q_UNUSED(xmit);
 }
 
 
 qsocket_t *VCR_Connect (char *host)
 {
+	Q_UNUSED(host);
 	return NULL;
 }
 
@@ -158,10 +164,12 @@ qsocket_t *VCR_CheckNewConnections (void)
 	}
 
 	sock = NET_NewQSocket ();
-	*(long *)(&sock->driverdata) = next.session;
+	sock->driverdata = (void *)next.session;
 
 	Sys_FileRead (vcrFile, sock->address, NET_NAMELEN);
 	VCR_ReadNext ();
 
 	return sock;
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

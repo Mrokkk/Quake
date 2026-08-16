@@ -44,10 +44,6 @@ void Sys_mkdir (char *path);
 //
 // system IO
 //
-void Sys_DebugLog(char *file, char *fmt, ...);
-
-void Sys_Error (char *error, ...) PRINTF_FORMAT(1);
-// an error will cause the entire program to exit
 
 #define Q_COLOR_ESCAPE	'^'
 #define Q_COLOR_BITS    0xF
@@ -75,8 +71,20 @@ void Sys_Error (char *error, ...) PRINTF_FORMAT(1);
 #define S_COLOR_ORANGE	"^8"
 #define S_COLOR_GREY	"^9"
 
-void Sys_Printf (char *fmt, ...) PRINTF_FORMAT(1);
+void Sys_DebugLog(char *file, char *fmt, ...);
+
+Q_NORETURN void Sys_Error (char *error, ...) Q_PRINTF_FORMAT(1);
+// an error will cause the entire program to exit
+
+void Sys_Printf (char *fmt, ...) Q_PRINTF_FORMAT(1);
 // send text to the console
+
+void Sys_DPrintf (char *fmt, ...) Q_PRINTF_FORMAT(1);
+// send text to the console
+
+#define Sys_Printf_f(fmt, ...)	Sys_Printf ("%s: " fmt, __func__, ##__VA_ARGS__)
+#define Sys_DPrintf_f(fmt, ...)	Sys_DPrintf ("%s: " fmt, __func__, ##__VA_ARGS__)
+#define Sys_Error_f(fmt, ...)	Sys_Error ("%s: " fmt, __func__, ##__VA_ARGS__)
 
 void Sys_Quit (void);
 

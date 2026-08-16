@@ -500,7 +500,7 @@ void FloorDivMod (double numer, double denom, int *quotient,
 
 #ifndef PARANOID
 	if (denom <= 0.0)
-		Sys_Error ("FloorDivMod: bad denominator %d\n", denom);
+		Sys_Error ("FloorDivMod: bad denominator %f\n", denom);
 
 //	if ((floor(numer) != numer) || (floor(denom) != denom))
 //		Sys_Error ("FloorDivMod: non-integer numer or denom %f %f\n",
@@ -574,3 +574,5 @@ fixed16_t Invert24To16(fixed16_t val)
 	return (fixed16_t)
 			(((double)0x10000 * (double)0x1000000 / (double)val) + 0.5);
 }
+
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

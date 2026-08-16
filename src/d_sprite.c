@@ -417,7 +417,7 @@ void D_DrawSprite (void)
 	ymax = ceil (ymax);
 
 	if (ymin >= ymax)
-		return;		// doesn't cross any scans at all
+		goto end;		// doesn't cross any scans at all
 
 	cachewidth = r_spritedesc.pspriteframe->width;
 	sprite_height = r_spritedesc.pspriteframe->height;
@@ -433,5 +433,9 @@ void D_DrawSprite (void)
 	D_SpriteScanLeftEdge ();
 	D_SpriteScanRightEdge ();
 	D_SpriteDrawSpans (sprite_spans);
+
+end:
+	sprite_spans = NULL;
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

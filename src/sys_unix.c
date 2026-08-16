@@ -32,36 +32,86 @@ static const char *colors[] = {
 	/* COLOR_WHITE		*/ "\e[37m",
 	/* COLOR_ORANGE		*/ "\e[33m",
 	/* COLOR_GREY		*/ "\e[38;5;245m",
+	/* COLOR_RESET		*/ "\e[0m",
 };
 
 // =======================================================================
 // General routines
 // =======================================================================
 
+static void Sys_Print (const char *s)
+{
+	qboolean con_color = false;
+
+	for (; *s; s++)
+	{
+		switch (*s)
+		{
+			case CON_COLOR_1:
+			case CON_COLOR_2:
+				fputs(colors[3], stdout);
+				con_color = true;
+				break;
+
+			case CON_BAR_LEFT:
+				putc('<', stdout);
+				break;
+
+			case CON_BAR_MIDDLE:
+				putc('=', stdout);
+				break;
+
+			case CON_BAR_RIGHT:
+				putc('>', stdout);
+				break;
+
+			case Q_COLOR_ESCAPE:
+				fputs(colors[ColorIndex(*++s)], stdout);
+				break;
+
+			default:
+				putc(*s, stdout);
+		}
+	}
+
+	if (con_color)
+	{
+		fputs(colors[10], stdout);
+	}
+}
+
 void Sys_Printf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		text[1024];
-	const char	*p;
-
-	va_start(argptr, fmt);
-	vsnprintf(text, sizeof(text), fmt, argptr);
-	va_end(argptr);
 
 	if (nostdout)
-		return;
-
-	for (p = text; *p; p++)
 	{
-		if (*p == Q_COLOR_ESCAPE)
-		{
-			fputs(colors[ColorIndex(*++p)], stdout);
-		}
-		else
-		{
-			putc(*p, stdout);
-		}
+		return;
 	}
+
+	va_start(argptr, fmt);
+	Q_vsnprintf(text, sizeof(text), fmt, argptr);
+	va_end(argptr);
+
+	Sys_Print(text);
+}
+
+void Sys_DPrintf (char *fmt, ...)
+{
+	va_list		argptr;
+	char		text[1024];
+
+	if (nostdout || !developer.value)
+	{
+		return;
+	}
+
+	va_start(argptr, fmt);
+	Q_vsnprintf(text, sizeof(text), fmt, argptr);
+	va_end(argptr);
+
+	Sys_Print(text);
 }
 
 void Sys_Quit (void)
@@ -76,7 +126,7 @@ void Sys_Init(void)
 {
 }
 
-void Sys_Error (char *error, ...)
+Q_NORETURN void Sys_Error (char *error, ...)
 {
 	va_list		argptr;
 	char		string[1024];
@@ -183,7 +233,7 @@ void Sys_DebugLog(char *file, char *fmt, ...)
 	char	data[1024];
 
 	va_start(argptr, fmt);
-	vsnprintf(data, sizeof(data), fmt, argptr);
+	Q_vsnprintf(data, sizeof(data), fmt, argptr);
 	va_end(argptr);
 	fd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
 	write(fd, data, strlen(data));
@@ -257,6 +307,8 @@ void Sys_LowFPPrecision (void)
 
 static void BacktraceErrorCallback(void *data, const char *message, int error)
 {
+	Q_UNUSED(data);
+
 	if (error == -1)
 	{
 		Sys_Printf(S_COLOR_RED "Debug info missing\n");
@@ -300,7 +352,7 @@ static struct backtrace_state *backtrace_state;
 
 static void SignalHandler(int sig, siginfo_t *info, void *context)
 {
-	UNUSED(context);
+	Q_UNUSED(context);
 
 	Sys_Printf("Received SIG%s\nReason: ", SIGNAME(sig));
 
@@ -413,7 +465,7 @@ void Sys_StacktraceDump(void)
 #endif
 }
 
-int main (int c, char **v)
+Q_NORETURN int main (int c, char **v)
 {
 	double		time, oldtime, newtime;
 	quakeparms_t parms;
@@ -449,6 +501,16 @@ int main (int c, char **v)
 	parms.argc = com_argc;
 	parms.argv = com_argv;
 
+	if (COM_CheckParm("-nostdout"))
+	{
+		nostdout = 1;
+	}
+	else
+	{
+		fcntl(0, F_SETFL, fcntl (0, F_GETFL, 0) | FNDELAY);
+		printf ("Linux Quake -- Version %0.3f\n", LINUX_VERSION);
+	}
+
 	j = COM_CheckParm("-mem");
 	if (j)
 		parms.memsize = (int) (Q_atof(com_argv[j+1]) * 1024 * 1024);
@@ -465,13 +527,6 @@ int main (int c, char **v)
 	Host_Init(&parms);
 
 	Sys_Init();
-
-	if (COM_CheckParm("-nostdout"))
-		nostdout = 1;
-	else {
-		fcntl(0, F_SETFL, fcntl (0, F_GETFL, 0) | FNDELAY);
-		printf ("Linux Quake -- Version %0.3f\n", LINUX_VERSION);
-	}
 
 	oldtime = Sys_FloatTime () - 0.1;
 	while (1)

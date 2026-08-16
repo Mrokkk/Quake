@@ -222,3 +222,4 @@ void Cvar_WriteVariables (FILE *f)
 			fprintf (f, "%s \"%s\"\n", var->name, var->string);
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

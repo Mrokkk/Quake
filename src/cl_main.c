@@ -274,6 +274,7 @@ Debugging tool, just flashes the screen
 */
 void SetPal (int i)
 {
+	Q_UNUSED(i);
 #if 0
 	static int old;
 	byte	pal[768];
@@ -755,3 +756,4 @@ void CL_Init (void)
 	Cmd_AddCommand ("timedemo", CL_TimeDemo_f);
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :

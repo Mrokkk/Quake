@@ -24,7 +24,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -79,8 +78,6 @@ static Atom _NET_WM_STATE;
 static Atom _NET_WM_STATE_MAXIMIZED_VERT;
 static Atom _NET_WM_STATE_MAXIMIZED_HORZ;
 static Atom _NET_WM_STATE_FULLSCREEN;
-
-static qboolean verbose = false;
 
 static byte current_palette[768];
 
@@ -205,16 +202,16 @@ static pixel24_t Rgb24(int r, int g, int b)
 
 static void Fixup16(XImage *framebuf, int x, int y, int width, int height)
 {
-	int				yi;
-	unsigned char	*src;
-	pixel16_t		*dest;
-	int				count, n;
+	int			yi;
+	uint8_t		*src;
+	pixel16_t	*dest;
+	int			count, n;
 
 	if ((x < 0) || (y < 0)) return;
 
 	for (yi = y; yi < (y + height); yi++)
 	{
-		src = (unsigned char *)&framebuf->data [yi * framebuf->bytes_per_line];
+		src = (uint8_t *)&framebuf->data[yi * framebuf->bytes_per_line];
 
 		// Duff's Device
 		count	= width;
@@ -225,13 +222,13 @@ static void Fixup16(XImage *framebuf, int x, int y, int width, int height)
 		switch (count % 8)
 		{
 			// format off
-			case 0:	do {	*dest-- = st2d_8to16table[*src--];
-			case 7:			*dest-- = st2d_8to16table[*src--];
-			case 6:			*dest-- = st2d_8to16table[*src--];
-			case 5:			*dest-- = st2d_8to16table[*src--];
-			case 4:			*dest-- = st2d_8to16table[*src--];
-			case 3:			*dest-- = st2d_8to16table[*src--];
-			case 2:			*dest-- = st2d_8to16table[*src--];
+			case 0:	do {	*dest-- = st2d_8to16table[*src--]; Q_FALLTHROUGH;
+			case 7:			*dest-- = st2d_8to16table[*src--]; Q_FALLTHROUGH;
+			case 6:			*dest-- = st2d_8to16table[*src--]; Q_FALLTHROUGH;
+			case 5:			*dest-- = st2d_8to16table[*src--]; Q_FALLTHROUGH;
+			case 4:			*dest-- = st2d_8to16table[*src--]; Q_FALLTHROUGH;
+			case 3:			*dest-- = st2d_8to16table[*src--]; Q_FALLTHROUGH;
+			case 2:			*dest-- = st2d_8to16table[*src--]; Q_FALLTHROUGH;
 			case 1:			*dest-- = st2d_8to16table[*src--];
 					} while (--n > 0);
 			// format on
@@ -241,16 +238,16 @@ static void Fixup16(XImage *framebuf, int x, int y, int width, int height)
 
 static void Fixup24(XImage *framebuf, int x, int y, int width, int height)
 {
-	int				yi;
-	unsigned char	*src;
-	pixel24_t		*dest;
-	int				count, n;
+	int			yi;
+	uint8_t		*src;
+	pixel24_t	*dest;
+	int			count, n;
 
 	if ((x < 0) || (y < 0)) return;
 
 	for (yi = y; yi < (y + height); yi++)
 	{
-		src = (unsigned char *)&framebuf->data [yi * framebuf->bytes_per_line];
+		src = (uint8_t *)&framebuf->data[yi * framebuf->bytes_per_line];
 
 		// Duff's Device
 		count	= width;
@@ -261,13 +258,13 @@ static void Fixup24(XImage *framebuf, int x, int y, int width, int height)
 		switch (count % 8)
 		{
 			// format off
-			case 0:	do {	*dest-- = st2d_8to24table[*src--];
-			case 7:			*dest-- = st2d_8to24table[*src--];
-			case 6:			*dest-- = st2d_8to24table[*src--];
-			case 5:			*dest-- = st2d_8to24table[*src--];
-			case 4:			*dest-- = st2d_8to24table[*src--];
-			case 3:			*dest-- = st2d_8to24table[*src--];
-			case 2:			*dest-- = st2d_8to24table[*src--];
+			case 0:	do {	*dest-- = st2d_8to24table[*src--]; Q_FALLTHROUGH;
+			case 7:			*dest-- = st2d_8to24table[*src--]; Q_FALLTHROUGH;
+			case 6:			*dest-- = st2d_8to24table[*src--]; Q_FALLTHROUGH;
+			case 5:			*dest-- = st2d_8to24table[*src--]; Q_FALLTHROUGH;
+			case 4:			*dest-- = st2d_8to24table[*src--]; Q_FALLTHROUGH;
+			case 3:			*dest-- = st2d_8to24table[*src--]; Q_FALLTHROUGH;
+			case 2:			*dest-- = st2d_8to24table[*src--]; Q_FALLTHROUGH;
 			case 1:			*dest-- = st2d_8to24table[*src--];
 					} while (--n > 0);
 			// format on
@@ -439,7 +436,7 @@ static void ResetSharedFrameBuffers(void)
 		// attach to the shared memory segment
 		x_shminfo[frm].shmaddr = (void *)shmat(x_shminfo[frm].shmid, 0, 0);
 
-		printf("VID: shared memory id=%d, addr=0x%lx\n", x_shminfo[frm].shmid, (long)x_shminfo[frm].shmaddr);
+		Sys_DPrintf("VID: shared memory id=%d, addr=0x%lx\n", x_shminfo[frm].shmid, (long)x_shminfo[frm].shmaddr);
 
 		x_framebuffer[frm]->data = x_shminfo[frm].shmaddr;
 
@@ -472,8 +469,6 @@ void VID_Init(unsigned char *palette)
 	vid.fullbright		= 256 - LittleLong(*((int *)vid.colormap + 2048));
 
 	srandom(getpid());
-
-	verbose = !!COM_CheckParm("-verbose");
 
 	// open the display
 	x_disp = XOpenDisplay(0);
@@ -541,9 +536,9 @@ void VID_Init(unsigned char *palette)
 	x_visinfo = XGetVisualInfo(x_disp, template_mask, &template, &num_visuals);
 	if (num_visuals > 1)
 	{
-		printf("Found more than one visual id at depth %d:\n", template.depth);
+		Sys_Printf("Found more than one visual id at depth %d:\n", template.depth);
 		for (i = 0 ; i < num_visuals ; i++)
-			printf("	-visualid %d\n", (int)(x_visinfo[i].visualid));
+			Sys_Printf("	-visualid %d\n", (int)(x_visinfo[i].visualid));
 	}
 	else if (num_visuals == 0)
 	{
@@ -553,16 +548,13 @@ void VID_Init(unsigned char *palette)
 			Sys_Error("VID: No visuals at depth %d\n", template.depth);
 	}
 
-	if (verbose)
-	{
-		printf("Using visualid %d:\n", (int)(x_visinfo->visualid));
-		printf("	screen %d\n", x_visinfo->screen);
-		printf("	red_mask 0x%x\n", (int)(x_visinfo->red_mask));
-		printf("	green_mask 0x%x\n", (int)(x_visinfo->green_mask));
-		printf("	blue_mask 0x%x\n", (int)(x_visinfo->blue_mask));
-		printf("	colormap_size %d\n", x_visinfo->colormap_size);
-		printf("	bits_per_rgb %d\n", x_visinfo->bits_per_rgb);
-	}
+	Sys_DPrintf("Using visualid %d:\n", (int)(x_visinfo->visualid));
+	Sys_DPrintf("	screen %d\n", x_visinfo->screen);
+	Sys_DPrintf("	red_mask 0x%x\n", (int)(x_visinfo->red_mask));
+	Sys_DPrintf("	green_mask 0x%x\n", (int)(x_visinfo->green_mask));
+	Sys_DPrintf("	blue_mask 0x%x\n", (int)(x_visinfo->blue_mask));
+	Sys_DPrintf("	colormap_size %d\n", x_visinfo->colormap_size);
+	Sys_DPrintf("	bits_per_rgb %d\n", x_visinfo->bits_per_rgb);
 
 	x_vis = x_visinfo->visual;
 
@@ -1078,13 +1070,13 @@ void Sys_SendKeyEvents(void)
 void D_BeginDirectRect(int x, int y, byte *pbitmap, int width, int height)
 {
 	// direct drawing of the "accessing disk" icon isn't supported under Linux
-	UNUSED(x && y && pbitmap && width && height);
+	Q_UNUSED(x && y && pbitmap && width && height);
 }
 
 void D_EndDirectRect(int x, int y, int width, int height)
 {
 	// direct drawing of the "accessing disk" icon isn't supported under Linux
-	UNUSED(x && y && width && height);
+	Q_UNUSED(x && y && width && height);
 }
 
 void IN_Init(void)

@@ -189,11 +189,17 @@ static ddef_t *ED_FindField (char *name)
 {
 	ddef_t		*def;
 	int			i;
+	const char	*s;
 
-	for (i=0 ; i<progs->numfielddefs ; i++)
+	if (Q_UNLIKELY(!name))
+		return NULL;
+
+	for (i = 0; i < progs->numfielddefs; i++)
 	{
 		def = &pr_fielddefs[i];
-		if (!strcmp(PR_GetString(def->s_name), name))
+		if (!(s = PR_GetString(def->s_name)))
+			continue;
+		if (!strcmp(s, name))
 			return def;
 	}
 	return NULL;
@@ -208,11 +214,17 @@ static ddef_t *ED_FindGlobal (char *name)
 {
 	ddef_t		*def;
 	int			i;
+	const char	*s;
 
-	for (i=0 ; i<progs->numglobaldefs ; i++)
+	if (Q_UNLIKELY(!name))
+		return NULL;
+
+	for (i = 0; i < progs->numglobaldefs; i++)
 	{
 		def = &pr_globaldefs[i];
-		if (!strcmp(PR_GetString(def->s_name), name))
+		if (!(s = PR_GetString(def->s_name)))
+			continue;
+		if (!strcmp(s, name))
 			return def;
 	}
 	return NULL;
@@ -227,11 +239,17 @@ static dfunction_t *ED_FindFunction (const char *name)
 {
 	dfunction_t		*func;
 	int				i;
+	const char		*s;
 
-	for (i=0 ; i<progs->numfunctions ; i++)
+	if (Q_UNLIKELY(!name))
+		return NULL;
+
+	for (i = 0; i< progs->numfunctions; i++)
 	{
 		func = &pr_functions[i];
-		if (!strcmp(PR_GetString(func->s_name), name))
+		if (!(s = PR_GetString(func->s_name)))
+			continue;
+		if (!strcmp(s, name))
 			return func;
 	}
 	return NULL;
@@ -373,7 +391,7 @@ static string_t PR_CreateString(const char *string, size_t size)
 
 	if (!size)
 	{
-		Sys_Error("%s: empty string\n", __func__);
+		Sys_Error_f("empty string\n");
 		return 0;
 	}
 
@@ -865,7 +883,7 @@ static string_t ED_NewString (char *string)
 
 	if (l >= sizeof(buf))
 	{
-		Sys_Error("%s: string too long: %zu\n", __func__, l);
+		Sys_Error_f("string too long: %zu\n", l);
 	}
 
 	for (i = 0 ; i < l; i++)
@@ -921,10 +939,10 @@ qboolean	ED_ParseEpair (void *base, ddef_t *key, char *s)
 		break;
 
 	case ev_vector:
-		strcpy (string, s);
+		Q_strlcpy (string, s, sizeof(string));
 		v = string;
 		w = string;
-		for (i=0 ; i<3 ; i++)
+		for (i = 0; i < 3; i++)
 		{
 			while (*v && *v != ' ')
 				v++;
@@ -1043,12 +1061,12 @@ if (!strcmp(com_token, "light"))
 			continue;
 		}
 
-if (anglehack)
-{
-char	temp[32];
-strcpy (temp, com_token);
-sprintf (com_token, "0 %s 0", temp);
-}
+		if (anglehack)
+		{
+			char	temp[32];
+			strcpy (temp, com_token);
+			sprintf (com_token, "0 %s 0", temp);
+		}
 
 		if (!ED_ParseEpair ((void *)&ent->v, key, com_token))
 			Host_Error ("ED_ParseEdict: parse error");

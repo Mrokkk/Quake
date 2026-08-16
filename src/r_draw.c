@@ -435,8 +435,7 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 			{
 				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
 				{
-					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) ==
-						r_framecount)
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == (unsigned)r_framecount)
 					{
 						r_lastvertvalid = false;
 						continue;
@@ -479,8 +478,7 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 			{
 				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
 				{
-					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) ==
-						r_framecount)
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == (unsigned)r_framecount)
 					{
 						r_lastvertvalid = false;
 						continue;
@@ -654,7 +652,7 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 
 // if no edges made it out, return without posting the surface
 	if (!r_emitted)
-		return;
+		goto end;
 
 	r_polycount++;
 
@@ -681,6 +679,9 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 
 //JDC	VectorCopy (r_worldmodelorg, surface_p->modelorg);
 	surface_p++;
+
+end:
+	r_pedge = NULL;
 }
 
 
@@ -899,3 +900,4 @@ void R_ZDrawSubmodelPolys (model_t *pmodel)
 	}
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :
