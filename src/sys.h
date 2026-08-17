@@ -56,8 +56,8 @@ void Sys_mkdir (char *path);
 #define COLOR_CYAN		'5'
 #define COLOR_MAGENTA	'6'
 #define COLOR_WHITE		'7'
-#define COLOR_ORANGE	'8'
-#define COLOR_GREY		'9'
+#define COLOR_GREY		'8'
+#define COLOR_RESET		'9'
 #define ColorIndex(c)	(((c) - '0') & Q_COLOR_BITS)
 
 #define S_COLOR_BLACK	"^0"
@@ -68,8 +68,8 @@ void Sys_mkdir (char *path);
 #define S_COLOR_CYAN	"^5"
 #define S_COLOR_MAGENTA	"^6"
 #define S_COLOR_WHITE	"^7"
-#define S_COLOR_ORANGE	"^8"
-#define S_COLOR_GREY	"^9"
+#define S_COLOR_GREY	"^8"
+#define S_COLOR_RESET	"^9"
 
 void Sys_DebugLog(char *file, char *fmt, ...);
 

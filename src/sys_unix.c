@@ -30,7 +30,6 @@ static const char *colors[] = {
 	/* COLOR_CYAN		*/ "\e[35m",
 	/* COLOR_MAGENTA	*/ "\e[36m",
 	/* COLOR_WHITE		*/ "\e[37m",
-	/* COLOR_ORANGE		*/ "\e[33m",
 	/* COLOR_GREY		*/ "\e[38;5;245m",
 	/* COLOR_RESET		*/ "\e[0m",
 };
@@ -76,7 +75,7 @@ static void Sys_Print (const char *s)
 
 	if (con_color)
 	{
-		fputs(colors[10], stdout);
+		fputs(colors[ColorIndex(COLOR_RESET)], stdout);
 	}
 }
 
@@ -323,7 +322,7 @@ static int BacktraceCallback(void *data, uintptr_t pc, const char *pathname, int
 	int *index = (int *)(data);
 	if (pathname != NULL || function != NULL)
 	{
-		Sys_Printf("#%-2u " S_COLOR_BLUE "%p " S_COLOR_WHITE "in " S_COLOR_YELLOW "%s " S_COLOR_WHITE "at " S_COLOR_GREEN "%s" S_COLOR_WHITE ":%d\n",
+		Sys_Printf("#%-2u " S_COLOR_BLUE "%p " S_COLOR_RESET "in " S_COLOR_YELLOW "%s " S_COLOR_RESET "at " S_COLOR_GREEN "%s" S_COLOR_RESET ":%d\n",
 			*index,
 			(void*)pc,
 			function,
@@ -332,7 +331,7 @@ static int BacktraceCallback(void *data, uintptr_t pc, const char *pathname, int
 	}
 	else
 	{
-		Sys_Printf("#%-2u " S_COLOR_BLUE "%p " S_COLOR_WHITE "in ??\n", *index, (void*)pc);
+		Sys_Printf("#%-2u " S_COLOR_BLUE "%p " S_COLOR_RESET "in ??\n", *index, (void*)pc);
 	}
 	(*index)++;
 	return 0;
@@ -350,11 +349,28 @@ static struct backtrace_state *backtrace_state;
 #	define SIGNAME(s)	"(unknown)"
 #endif
 
+static const char *GetGenericReason(const siginfo_t *info)
+{
+	switch (info->si_code)
+	{
+		case SI_USER:	return "user";
+		case SI_KERNEL:	return "kernel";
+		default:		return "unknown";
+	}
+}
+
 static void SignalHandler(int sig, siginfo_t *info, void *context)
+{
+	Q_UNUSED(context && context);
+	Sys_Printf(S_COLOR_CYAN "Received SIG%s" S_COLOR_RESET "\nReason: %s\n", SIGNAME(sig), GetGenericReason(info));
+	Sys_Quit();
+}
+
+static void CrashSignalHandler(int sig, siginfo_t *info, void *context)
 {
 	Q_UNUSED(context);
 
-	Sys_Printf("Received SIG%s\nReason: ", SIGNAME(sig));
+	Sys_Printf(S_COLOR_RED "Received SIG%s" S_COLOR_RESET "\nReason: ", SIGNAME(sig));
 
 	switch (sig)
 	{
@@ -436,24 +452,13 @@ static void SignalHandler(int sig, siginfo_t *info, void *context)
 			break;
 
 		default:
-			switch (info->si_code)
-			{
-				case SI_USER:
-					Sys_Printf("user\n");
-					break;
-				case SI_KERNEL:
-					Sys_Printf("kernel\n");
-					break;
-				unknown:
-				default:
-					Sys_Printf("unknown\n");
-					break;
-			}
+		unknown:
+			Sys_Printf("%s\n", GetGenericReason(info));
 	}
 
-	Sys_StacktraceDump ();
+	Sys_StacktraceDump();
 
-	Host_Shutdown ();
+	Host_Shutdown();
 }
 
 void Sys_StacktraceDump(void)
@@ -480,19 +485,29 @@ Q_NORETURN int main (int c, char **v)
 	// install signal handlers
 	{
 		struct sigaction sa = {};
-		sa.sa_handler	= SIG_IGN;
-		sigaction(SIGINT, &sa, NULL);
+		sigfillset(&sa.sa_mask);
 
-		sa.sa_sigaction	= &SignalHandler;
-		sa.sa_flags		= SA_RESETHAND | SA_SIGINFO;
-
+		sa.sa_handler		= SIG_IGN;
 		sigaction(SIGINT,	&sa, NULL);
+		sigaction(SIGTSTP,	&sa, NULL);
+		sigaction(SIGUSR1,	&sa, NULL);
+		sigaction(SIGUSR2,	&sa, NULL);
+		sigaction(SIGIO,	&sa, NULL);
+
+		sa.sa_sigaction		= &SignalHandler;
+		sa.sa_flags			= SA_RESETHAND | SA_SIGINFO;
+		sigaction(SIGHUP,	&sa, NULL);
+		sigaction(SIGPIPE,	&sa, NULL);
+		sigaction(SIGTERM,	&sa, NULL);
+		sigaction(SIGALRM,	&sa, NULL);
+		sigaction(SIGQUIT,	&sa, NULL);
+
+		sa.sa_sigaction		= &CrashSignalHandler;
 		sigaction(SIGSEGV,	&sa, NULL);
 		sigaction(SIGBUS,	&sa, NULL);
 		sigaction(SIGILL,	&sa, NULL);
 		sigaction(SIGFPE,	&sa, NULL);
 		sigaction(SIGABRT,	&sa, NULL);
-		sigaction(SIGTERM,	&sa, NULL);
 	}
 
 	memset(&parms, 0, sizeof(parms));
@@ -512,10 +527,10 @@ Q_NORETURN int main (int c, char **v)
 	}
 
 	j = COM_CheckParm("-mem");
-	if (j)
-		parms.memsize = (int) (Q_atof(com_argv[j+1]) * 1024 * 1024);
-	else
-		parms.memsize = 384*1024*1024;
+
+	parms.memsize = j
+		? (int)(Q_atof(com_argv[j + 1]) * 1024 * 1024)
+		: 384*1024*1024;
 	parms.membase = malloc (parms.memsize);
 
 	parms.basedir = BASEDIR;
@@ -529,6 +544,7 @@ Q_NORETURN int main (int c, char **v)
 	Sys_Init();
 
 	oldtime = Sys_FloatTime () - 0.1;
+
 	while (1)
 	{
 		// find time spent rendering last frame
@@ -545,7 +561,7 @@ Q_NORETURN int main (int c, char **v)
 			time = sys_ticrate.value;
 		}
 
-		if (time > sys_ticrate.value*2)
+		if (time > sys_ticrate.value * 2)
 			oldtime = newtime;
 		else
 			oldtime += time;
