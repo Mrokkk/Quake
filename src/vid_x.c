@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 1996-1997 Id Software, Inc.
+ * Copyright (C) 2026 Mrokkk
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,14 +20,16 @@
  */
 // vid_x.c -- general x video driver
 
+#include <time.h>
 #include <stdint.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
@@ -34,10 +37,13 @@
 #include <X11/XKBlib.h>
 #include <X11/extensions/XShm.h>
 
+#include "sys_unix.h"
 #include "quakedef.h"
 #include "d_local.h"
 
 static cvar_t	m_filter = {"m_filter", "0", true};
+static cvar_t	vid_vsync = {"vid_vsync", "1", true};
+static cvar_t	vid_refreshrate = {"vid_refreshrate", "60", true};
 
 static qboolean	mouse_avail;
 static int		mouse_buttons = 3;
@@ -58,7 +64,7 @@ unsigned short d_8to16table[256];
 
 int	d_con_indirect = 0;
 
-static qboolean		doShm;
+static qboolean		use_shm;
 static Display		*x_disp;
 static Colormap		x_cmap;
 static Window		x_win;
@@ -106,6 +112,10 @@ static pixel24_t		st2d_8to24table[256];
 static int				shiftmask_fl = 0;
 static long				r_shift, g_shift, b_shift;
 static unsigned long	r_mask, g_mask, b_mask;
+
+static uint64_t frame_start;
+static float fps_sum;
+static uint64_t frame;
 
 static void shiftmask_init()
 {
@@ -459,6 +469,9 @@ void VID_Init(unsigned char *palette)
 	int			num_visuals;
 	int			template_mask;
 
+	Cvar_RegisterVariable(&vid_vsync);
+	Cvar_RegisterVariable(&vid_refreshrate);
+
 	ignorenext			= 0;
 	vid.width			= SCREEN_WIDTH * 3;
 	vid.height			= SCREEN_HEIGHT * 3;
@@ -655,7 +668,7 @@ void VID_Init(unsigned char *palette)
 	if (XShmQueryExtension(x_disp))
 	{
 		char *displayname;
-		doShm		= true;
+		use_shm		= true;
 		displayname = (char *)getenv("DISPLAY");
 		if (displayname)
 		{
@@ -663,11 +676,11 @@ void VID_Init(unsigned char *palette)
 			while (*d && (*d != ':')) d++;
 			if (*d) *d = 0;
 			if (!(!strcasecmp(displayname, "unix") || !*displayname))
-				doShm = false;
+				use_shm = false;
 		}
 	}
 
-	if (doShm)
+	if (use_shm)
 	{
 		x_shmeventtype = XShmGetEventBase(x_disp) + ShmCompletion;
 		ResetSharedFrameBuffers();
@@ -689,6 +702,8 @@ void VID_Init(unsigned char *palette)
 	vid.conwidth		= vid.width;
 	vid.conheight		= vid.height;
 	vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
+
+	frame_start = gettime_ns();
 }
 
 void VID_ShiftPalette(unsigned char *p)
@@ -924,10 +939,42 @@ static void GetEvent(void)
 			break;
 
 		default:
-			if (doShm && x_event.type == x_shmeventtype)
+			if (use_shm && x_event.type == x_shmeventtype)
 				oktodraw = true;
 	}
+}
 
+static void WaitForNextFrame(void)
+{
+	timespec_t ts;
+	int64_t diff;
+	uint64_t prev_frame, next_frame, current;
+
+	next_frame = frame_start + NSEC_IN_SEC / (unsigned)vid_refreshrate.value;
+
+	current = gettime_ns();
+
+	diff = next_frame - current;
+
+	// we're ahead of time
+	if (Q_LIKELY(diff > 0))
+	{
+		ts.tv_sec = 0;
+		ts.tv_nsec = diff;
+		while (nanosleep(&ts, &ts) == -1);
+	}
+
+	prev_frame = frame_start;
+	frame_start = gettime_ns();
+
+	fps_sum += (float)NSEC_IN_SEC / (frame_start - prev_frame);
+
+	if (++frame % 60 == 0)
+	{
+		// TODO: draw FPS on screen
+		Sys_Printf("FPS: %0.2f\n", fps_sum / 60);
+		fps_sum = 0;
+	}
 }
 
 // flushes the given rectangles from the view buffer to the screen
@@ -939,7 +986,7 @@ void VID_Update(vrect_t *rects)
 		config_notify	= 0;
 		vid.width		= config_notify_width & ~7;
 		vid.height		= config_notify_height;
-		if (doShm)
+		if (use_shm)
 		{
 			ResetSharedFrameBuffers();
 		}
@@ -958,6 +1005,7 @@ void VID_Update(vrect_t *rects)
 		vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
 		Con_CheckResize();
 		Con_Clear_f();
+		frame_start = gettime_ns();
 		return;
 	}
 
@@ -967,7 +1015,7 @@ void VID_Update(vrect_t *rects)
 		scr_fullupdate = 0;
 	}
 
-	if (doShm)
+	if (use_shm)
 	{
 		while (rects)
 		{
@@ -1017,6 +1065,7 @@ void VID_Update(vrect_t *rects)
 			{
 				Fixup24(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
 			}
+
 			XPutImage(x_disp,
 				x_win,
 				x_gc,
@@ -1027,9 +1076,15 @@ void VID_Update(vrect_t *rects)
 				rects->y,
 				rects->width,
 				rects->height);
+
 			rects = rects->pnext;
 		}
 		XSync(x_disp, False);
+	}
+
+	if (vid_vsync.value)
+	{
+		WaitForNextFrame();
 	}
 }
 

@@ -4,6 +4,7 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +14,7 @@
 #include <unistd.h>
 
 #include "quakedef.h"
+#include "sys_unix.h"
 
 #define BASEDIR "."
 
@@ -241,19 +243,18 @@ void Sys_DebugLog(char *file, char *fmt, ...)
 
 double Sys_FloatTime (void)
 {
-	struct timeval tp;
-	struct timezone tzp;
-	static int      secbase;
+	uint64_t ns;
+	static uint64_t base;
 
-	gettimeofday(&tp, &tzp);
+	ns = gettime_ns();
 
-	if (!secbase)
+	if (!base)
 	{
-		secbase = tp.tv_sec;
-		return tp.tv_usec/1000000.0;
+		base = ns;
+		return 0;
 	}
 
-	return (tp.tv_sec - secbase) + tp.tv_usec/1000000.0;
+	return (double)(ns - base) / NSEC_IN_SEC;
 }
 
 // =======================================================================
