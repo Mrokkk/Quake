@@ -23,31 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "winquake.h"
 #endif
 
-void (*vid_menudrawfn)(void);
-void (*vid_menukeyfn)(int key);
+static menu_t *video_menu;
 
-enum
-{
-	m_none,
-	m_main,
-	m_singleplayer,
-	m_load,
-	m_save,
-	m_multiplayer,
-	m_setup,
-	m_net,
-	m_options,
-	m_video,
-	m_keys,
-	m_help,
-	m_quit,
-	m_serialconfig,
-	m_modemconfig,
-	m_lanconfig,
-	m_gameoptions,
-	m_search,
-	m_slist
-} m_state;
+m_state_t m_state;
 
 void M_Menu_Main_f (void);
 	void M_Menu_SinglePlayer_f (void);
@@ -110,7 +88,7 @@ qboolean	m_entersound;		// play after drawing a frame, so caching
 								// won't disrupt the sound
 qboolean	m_recursiveDraw;
 
-int			m_return_state;
+m_state_t	m_return_state;
 qboolean	m_return_onerror;
 char		m_return_reason [32];
 
@@ -121,7 +99,7 @@ char		m_return_reason [32];
 #define	IPXConfig		(m_net_cursor == 2)
 #define	TCPIPConfig		(m_net_cursor == 3)
 
-void M_ConfigureNetSubsystem(void);
+static void M_ConfigureNetSubsystem(void);
 
 /*
 ================
@@ -135,7 +113,7 @@ void M_DrawCharacter (int cx, int cy, int num)
 	Draw_Character_Center (cx, cy, num);
 }
 
-void M_Print (int cx, int cy, char *str)
+void M_Print (int cx, int cy, const char *str)
 {
 	while (*str)
 	{
@@ -145,7 +123,7 @@ void M_Print (int cx, int cy, char *str)
 	}
 }
 
-void M_PrintWhite (int cx, int cy, char *str)
+void M_PrintWhite (int cx, int cy, const char *str)
 {
 	while (*str)
 	{
@@ -168,7 +146,7 @@ void M_DrawPic (int x, int y, qpic_t *pic)
 byte identityTable[256];
 byte translationTable[256];
 
-void M_BuildTranslationTable(int top, int bottom)
+static void M_BuildTranslationTable(int top, int bottom)
 {
 	int		j;
 	byte	*dest, *source;
@@ -207,7 +185,7 @@ void M_BuildTranslationTable(int top, int bottom)
 	}
 }
 
-void M_DrawTransPicTranslate (int x, int y, qpic_t *pic)
+static void M_DrawTransPicTranslate (int x, int y, qpic_t *pic)
 {
 	Draw_TransPicTranslate_Align (x, y, CENTER, CENTER, pic, translationTable);
 }
@@ -323,11 +301,9 @@ void M_Menu_Main_f (void)
 void M_Main_Draw (void)
 {
 	int		f;
-	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/ttl_main.lmp");
-	M_DrawTransPic ((SCREEN_WIDTH - p->width) / 2, 4, p);
+	M_DrawPlaque ();
+	M_DrawMenuHeader ("gfx/ttl_main.lmp");
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mainmenu.lmp") );
 
 	f = (int)(host_time * 10)%6;
@@ -404,16 +380,14 @@ void M_Menu_SinglePlayer_f (void)
 void M_SinglePlayer_Draw (void)
 {
 	int		f;
-	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/ttl_sgl.lmp");
-	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	M_DrawPlaque ();
+	M_DrawMenuHeader ("gfx/ttl_sgl.lmp");
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/sp_menu.lmp") );
 
-	f = (int)(host_time * 10)%6;
+	f = (int)(host_time * 10) % 6;
 
-	M_DrawTransPic (54, 32 + m_singleplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
+	M_DrawTransPic (54, 32 + m_singleplayer_cursor * 20, Draw_CachePic(va("gfx/menudot%i.lmp", f + 1)));
 }
 
 void M_SinglePlayer_Key (int key)
@@ -528,32 +502,28 @@ void M_Menu_Save_f (void)
 
 void M_Load_Draw (void)
 {
-	int		i;
-	qpic_t	*p;
+	int i;
 
-	p = Draw_CachePic ("gfx/p_load.lmp");
-	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	M_DrawMenuHeader ("gfx/p_load.lmp");
 
-	for (i=0 ; i< MAX_SAVEGAMES; i++)
-		M_Print (16, 32 + 8*i, m_filenames[i]);
+	for (i = 0; i < MAX_SAVEGAMES; i++)
+		M_Print (16, 32 + CHAR_HEIGHT * i, m_filenames[i]);
 
-// line cursor
-	M_DrawCharacter (8, 32 + load_cursor*8, 12+((int)(realtime*4)&1));
+	// line cursor
+	M_DrawMenuCursor (8, 32 + load_cursor * 8);
 }
 
 void M_Save_Draw (void)
 {
-	int		i;
-	qpic_t	*p;
+	int i;
 
-	p = Draw_CachePic ("gfx/p_save.lmp");
-	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	M_DrawMenuHeader ("gfx/p_save.lmp");
 
-	for (i=0 ; i<MAX_SAVEGAMES ; i++)
-		M_Print (16, 32 + 8*i, m_filenames[i]);
+	for (i = 0; i < MAX_SAVEGAMES; i++)
+		M_Print (16, 32 + CHAR_HEIGHT * i, m_filenames[i]);
 
-// line cursor
-	M_DrawCharacter (8, 32 + load_cursor*8, 12+((int)(realtime*4)&1));
+	// line cursor
+	M_DrawMenuCursor (8, 32 + load_cursor * 8);
 }
 
 void M_Load_Key (int k)
@@ -644,15 +614,13 @@ void M_Menu_MultiPlayer_f (void)
 
 void M_MultiPlayer_Draw (void)
 {
-	int		f;
-	qpic_t	*p;
+	int f;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	M_DrawPlaque ();
+	M_DrawMenuHeader ("gfx/p_multi.lmp");
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mp_menu.lmp") );
 
-	f = (int)(host_time * 10)%6;
+	f = (int)(host_time * 10) % 6;
 
 	M_DrawTransPic (54, 32 + m_multiplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 
@@ -732,9 +700,8 @@ void M_Setup_Draw (void)
 {
 	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	M_DrawPlaque ();
+	M_DrawMenuHeader ("gfx/p_multi.lmp");
 
 	M_Print (64, 40, "Hostname");
 	M_DrawTextBox (160, 32, 16, 1);
@@ -756,13 +723,13 @@ void M_Setup_Draw (void)
 	M_BuildTranslationTable(setup_top*16, setup_bottom*16);
 	M_DrawTransPicTranslate (172, 72, p);
 
-	M_DrawCharacter (56, setup_cursor_table [setup_cursor], 12+((int)(realtime*4)&1));
+	M_DrawMenuCursor (56, setup_cursor_table [setup_cursor]);
 
 	if (setup_cursor == 0)
-		M_DrawCharacter (168 + 8*strlen(setup_hostname), setup_cursor_table [setup_cursor], 10+((int)(realtime*4)&1));
+		M_DrawTextCursor (168 + 8*strlen(setup_hostname), setup_cursor_table [setup_cursor]);
 
 	if (setup_cursor == 1)
-		M_DrawCharacter (168 + 8*strlen(setup_myname), setup_cursor_table [setup_cursor], 10+((int)(realtime*4)&1));
+		M_DrawTextCursor (168 + 8*strlen(setup_myname), setup_cursor_table [setup_cursor]);
 }
 
 void M_Setup_Key (int k)
@@ -923,9 +890,8 @@ void M_Net_Draw (void)
 	int		f;
 	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	M_DrawPlaque ();
+	M_DrawMenuHeader ("gfx/p_multi.lmp");
 
 	f = 32;
 
@@ -1182,26 +1148,41 @@ void M_DrawSlider (int x, int y, float range)
 
 void M_DrawCheckbox (int x, int y, int on)
 {
-#if 0
-	if (on)
-		M_DrawCharacter (x, y, 131);
-	else
-		M_DrawCharacter (x, y, 129);
-#endif
 	if (on)
 		M_Print (x, y, "on");
 	else
 		M_Print (x, y, "off");
 }
 
+void M_DrawMenuCursor (int x, int y)
+{
+	M_DrawCharacter (x, y, 12 + ((int)(realtime * 4) & 1));
+}
+
+void M_DrawTextCursor (int x, int y)
+{
+	M_DrawCharacter (x, y, 10 + ((int)(realtime * 4) & 1));
+}
+
+void M_DrawPlaque (void)
+{
+	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
+}
+
+void M_DrawMenuHeader (const char *path)
+{
+	qpic_t *p;
+
+	p = Draw_CachePic ((char *)path);
+	M_DrawPic ((SCREEN_WIDTH - p->width) / 2, 4, p);
+}
+
 void M_Options_Draw (void)
 {
 	float		r;
-	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_option.lmp");
-	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	M_DrawPlaque ();
+	M_DrawMenuHeader ("gfx/p_option.lmp");
 
 	M_Print (16, 32, "    Customize controls");
 	M_Print (16, 40, "         Go to console");
@@ -1239,7 +1220,7 @@ void M_Options_Draw (void)
 	M_Print (16, 120, "            Lookstrafe");
 	M_DrawCheckbox (220, 120, lookstrafe.value);
 
-	if (vid_menudrawfn)
+	if (video_menu)
 		M_Print (16, 128, "         Video Options");
 
 #ifdef _WIN32
@@ -1250,8 +1231,8 @@ void M_Options_Draw (void)
 	}
 #endif
 
-// cursor
-	M_DrawCharacter (SCREEN_HEIGHT, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
+	// cursor
+	M_DrawMenuCursor (200, 32 + options_cursor * 8);
 }
 
 void M_Options_Key (int k)
@@ -1308,7 +1289,7 @@ void M_Options_Key (int k)
 		break;
 	}
 
-	if (options_cursor == 12 && vid_menudrawfn == NULL)
+	if (options_cursor == 12 && video_menu == NULL)
 	{
 		if (k == K_UPARROW)
 			options_cursor = 11;
@@ -1332,24 +1313,24 @@ void M_Options_Key (int k)
 
 char *bindnames[][2] =
 {
-{"+attack", 		"attack"},
-{"impulse 10", 		"change weapon"},
-{"+jump", 			"jump / swim up"},
-{"+forward", 		"walk forward"},
-{"+back", 			"backpedal"},
-{"+left", 			"turn left"},
-{"+right", 			"turn right"},
-{"+speed", 			"run"},
-{"+moveleft", 		"step left"},
-{"+moveright", 		"step right"},
-{"+strafe", 		"sidestep"},
-{"+lookup", 		"look up"},
-{"+lookdown", 		"look down"},
-{"centerview", 		"center view"},
-{"+mlook", 			"mouse look"},
-{"+klook", 			"keyboard look"},
-{"+moveup",			"swim up"},
-{"+movedown",		"swim down"}
+	{"+attack", 		"attack"},
+	{"impulse 10", 		"change weapon"},
+	{"+jump", 			"jump / swim up"},
+	{"+forward", 		"walk forward"},
+	{"+back", 			"backpedal"},
+	{"+left", 			"turn left"},
+	{"+right", 			"turn right"},
+	{"+speed", 			"run"},
+	{"+moveleft", 		"step left"},
+	{"+moveright", 		"step right"},
+	{"+strafe", 		"sidestep"},
+	{"+lookup", 		"look up"},
+	{"+lookdown", 		"look down"},
+	{"centerview", 		"center view"},
+	{"+mlook", 			"mouse look"},
+	{"+klook", 			"keyboard look"},
+	{"+moveup",			"swim up"},
+	{"+movedown",		"swim down"}
 };
 
 #define	NUMCOMMANDS	(sizeof(bindnames)/sizeof(bindnames[0]))
@@ -1453,7 +1434,7 @@ void M_Keys_Draw (void)
 	if (bind_grab)
 		M_DrawCharacter (130, 48 + keys_cursor*8, '=');
 	else
-		M_DrawCharacter (130, 48 + keys_cursor*8, 12+((int)(realtime*4)&1));
+		M_DrawMenuCursor (130, 48 + keys_cursor * 8);
 }
 
 void M_Keys_Key (int k)
@@ -1528,12 +1509,12 @@ void M_Menu_Video_f (void)
 
 void M_Video_Draw (void)
 {
-	(*vid_menudrawfn) ();
+	video_menu->draw ();
 }
 
 void M_Video_Key (int key)
 {
-	(*vid_menukeyfn) (key);
+	video_menu->key (key);
 }
 
 //=============================================================================
@@ -1780,7 +1761,7 @@ void M_SerialConfig_Draw (void)
 	char	*startJoin;
 	char	*directModem;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
+	M_DrawPlaque ();
 	p = Draw_CachePic ("gfx/p_multi.lmp");
 	basex = (SCREEN_WIDTH-p->width)/2;
 	M_DrawPic (basex, 4, p);
@@ -1830,10 +1811,10 @@ void M_SerialConfig_Draw (void)
 		M_Print (basex+8, serialConfig_cursor_table[5], "OK");
 	}
 
-	M_DrawCharacter (basex-8, serialConfig_cursor_table [serialConfig_cursor], 12+((int)(realtime*4)&1));
+	M_DrawMenuCursor (basex-8, serialConfig_cursor_table [serialConfig_cursor]);
 
 	if (serialConfig_cursor == 4)
-		M_DrawCharacter (168 + 8*strlen(serialConfig_phone), serialConfig_cursor_table [serialConfig_cursor], 10+((int)(realtime*4)&1));
+		M_DrawTextCursor (168 + 8*strlen(serialConfig_phone), serialConfig_cursor_table [serialConfig_cursor]);
 
 	if (*m_return_reason)
 		M_PrintWhite (basex, 148, m_return_reason);
@@ -2022,7 +2003,7 @@ void M_ModemConfig_Draw (void)
 	qpic_t	*p;
 	int		basex;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
+	M_DrawPlaque ();
 	p = Draw_CachePic ("gfx/p_multi.lmp");
 	basex = (SCREEN_WIDTH-p->width)/2;
 	M_DrawPic (basex, 4, p);
@@ -2037,24 +2018,24 @@ void M_ModemConfig_Draw (void)
 	M_DrawTextBox (basex, modemConfig_cursor_table[1]+4, 16, 1);
 	M_Print (basex+8, modemConfig_cursor_table[1]+12, modemConfig_clear);
 	if (modemConfig_cursor == 1)
-		M_DrawCharacter (basex+8 + 8*strlen(modemConfig_clear), modemConfig_cursor_table[1]+12, 10+((int)(realtime*4)&1));
+		M_DrawTextCursor (basex+8 + 8*strlen(modemConfig_clear), modemConfig_cursor_table[1]+12);
 
 	M_Print (basex, modemConfig_cursor_table[2], "Init");
 	M_DrawTextBox (basex, modemConfig_cursor_table[2]+4, 30, 1);
 	M_Print (basex+8, modemConfig_cursor_table[2]+12, modemConfig_init);
 	if (modemConfig_cursor == 2)
-		M_DrawCharacter (basex+8 + 8*strlen(modemConfig_init), modemConfig_cursor_table[2]+12, 10+((int)(realtime*4)&1));
+		M_DrawTextCursor (basex+8 + 8*strlen(modemConfig_init), modemConfig_cursor_table[2]+12);
 
 	M_Print (basex, modemConfig_cursor_table[3], "Hangup");
 	M_DrawTextBox (basex, modemConfig_cursor_table[3]+4, 16, 1);
 	M_Print (basex+8, modemConfig_cursor_table[3]+12, modemConfig_hangup);
 	if (modemConfig_cursor == 3)
-		M_DrawCharacter (basex+8 + 8*strlen(modemConfig_hangup), modemConfig_cursor_table[3]+12, 10+((int)(realtime*4)&1));
+		M_DrawTextCursor (basex+8 + 8*strlen(modemConfig_hangup), modemConfig_cursor_table[3]+12);
 
 	M_DrawTextBox (basex, modemConfig_cursor_table[4]-8, 2, 1);
 	M_Print (basex+8, modemConfig_cursor_table[4], "OK");
 
-	M_DrawCharacter (basex-8, modemConfig_cursor_table [modemConfig_cursor], 12+((int)(realtime*4)&1));
+	M_DrawMenuCursor (basex-8, modemConfig_cursor_table [modemConfig_cursor]);
 }
 
 void M_ModemConfig_Key (int key)
@@ -2206,7 +2187,7 @@ void M_LanConfig_Draw (void)
 	char	*startJoin;
 	char	*protocol;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
+	M_DrawPlaque ();
 	p = Draw_CachePic ("gfx/p_multi.lmp");
 	basex = (SCREEN_WIDTH-p->width)/2;
 	M_DrawPic (basex, 4, p);
@@ -2245,13 +2226,13 @@ void M_LanConfig_Draw (void)
 		M_Print (basex+8, lanConfig_cursor_table[1], "OK");
 	}
 
-	M_DrawCharacter (basex-8, lanConfig_cursor_table [lanConfig_cursor], 12+((int)(realtime*4)&1));
+	M_DrawMenuCursor (basex-8, lanConfig_cursor_table [lanConfig_cursor]);
 
 	if (lanConfig_cursor == 0)
-		M_DrawCharacter (basex+9*8 + 8*strlen(lanConfig_portname), lanConfig_cursor_table [0], 10+((int)(realtime*4)&1));
+		M_DrawTextCursor (basex+9*8 + 8*strlen(lanConfig_portname), lanConfig_cursor_table [0]);
 
 	if (lanConfig_cursor == 2)
-		M_DrawCharacter (basex+16 + 8*strlen(lanConfig_joinname), lanConfig_cursor_table [2], 10+((int)(realtime*4)&1));
+		M_DrawTextCursor (basex+16 + 8*strlen(lanConfig_joinname), lanConfig_cursor_table [2]);
 
 	if (*m_return_reason)
 		M_PrintWhite (basex, 148, m_return_reason);
@@ -2534,12 +2515,10 @@ int		gameoptions_cursor;
 
 void M_GameOptions_Draw (void)
 {
-	qpic_t	*p;
-	int		x;
+	int x;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (SCREEN_WIDTH-p->width)/2, 4, p);
+	M_DrawPlaque ();
+	M_DrawMenuHeader ("gfx/p_multi.lmp");
 
 	M_DrawTextBox (152, 32, 10, 1);
 	M_Print (160, 40, "begin game");
@@ -2634,8 +2613,8 @@ void M_GameOptions_Draw (void)
       M_Print (160, 128, levels[episodes[startepisode].firstLevel + startlevel].name);
    }
 
-// line cursor
-	M_DrawCharacter (144, gameoptions_cursor_table[gameoptions_cursor], 12+((int)(realtime*4)&1));
+	// line cursor
+	M_DrawMenuCursor (144, gameoptions_cursor_table[gameoptions_cursor]);
 
 	if (m_serverInfoMessage)
 	{
@@ -2928,7 +2907,7 @@ void M_ServerList_Draw (void)
 			sprintf(string, "%-15.15s %-15.15s\n", hostcache[n].name, hostcache[n].map);
 		M_Print (16, 32 + 8*n, string);
 	}
-	M_DrawCharacter (0, 32 + slist_cursor*8, 12+((int)(realtime*4)&1));
+	M_DrawMenuCursor (0, 32 + slist_cursor*8);
 
 	if (*m_return_reason)
 		M_PrintWhite (16, 148, m_return_reason);
@@ -3198,7 +3177,16 @@ void M_Keydown (int key)
 	}
 }
 
-void M_ConfigureNetSubsystem(void)
+void M_RegisterVideoMenu (menu_t *m)
+{
+	if (!m->draw || !m->key)
+	{
+		Sys_Error_f ("incorrect video menu provided\n");
+	}
+	video_menu = m;
+}
+
+static void M_ConfigureNetSubsystem(void)
 {
 // enable/disable net systems to match desired config
 

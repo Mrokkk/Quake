@@ -60,11 +60,12 @@ Q_BEGIN_DECLS
 
 typedef struct cvar_s
 {
-	char	*name;
-	char	*string;
-	qboolean archive;		// set to true to cause it to be saved to vars.rc
-	qboolean server;		// notifies players when changed
-	float	value;
+	char		*name;
+	char		*string;
+	qboolean	archive;	// set to true to cause it to be saved to vars.rc
+	qboolean	server;		// notifies players when changed
+	float		value;
+	void		(*callback)(void);
 	struct cvar_s *next;
 } cvar_t;
 

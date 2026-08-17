@@ -43,6 +43,7 @@
 
 static cvar_t	m_filter = {"m_filter", "0", true};
 static cvar_t	vid_vsync = {"vid_vsync", "1", true};
+static cvar_t	vid_fullscreen = {"vid_fullscreen", "0", true};
 static cvar_t	vid_refreshrate = {"vid_refreshrate", "60", true};
 
 static qboolean	mouse_avail;
@@ -52,7 +53,6 @@ static int		mouse_buttonstate;
 static float	mouse_x, mouse_y;
 static float	old_mouse_x, old_mouse_y;
 static int		ignorenext;
-static qboolean	focused;
 
 typedef struct
 {
@@ -84,25 +84,45 @@ static Atom _NET_WM_STATE;
 static Atom _NET_WM_STATE_MAXIMIZED_VERT;
 static Atom _NET_WM_STATE_MAXIMIZED_HORZ;
 static Atom _NET_WM_STATE_FULLSCREEN;
+static Atom _NET_WM_STATE_FOCUSED;
+static Atom _NET_WM_STATE_HIDDEN;
 
+enum
+{
+	WINDOW_MAXIMIZED	= 1 << 0,
+	WINDOW_FULLSCREEN	= 1 << 1,
+	WINDOW_FOCUSED		= 1 << 2,
+	WINDOW_HIDDEN		= 1 << 3,
+};
+
+static int window_state;
+static qboolean vid_changed;
 static byte current_palette[768];
 
 static long X11_highhunkmark;
 static long X11_buffersize;
+
+static void VID_Menu_Draw(void);
+static void VID_Menu_Key(int key);
+
+static menu_t vid_menu = {
+	.draw	= &VID_Menu_Draw,
+	.key	= &VID_Menu_Key,
+};
 
 int		vid_surfcachesize;
 void	*vid_surfcache;
 
 #define COMMON_XINPUT_FLAGS \
 	(StructureNotifyMask \
+	| ExposureMask \
+	| PropertyChangeMask \
 	| EnterWindowMask \
 	| LeaveWindowMask \
 	| KeyPressMask \
 	| KeyReleaseMask \
 	| ButtonPressMask \
 	| ButtonReleaseMask)
-
-void VID_MenuKey(int key);
 
 typedef uint16_t pixel16_t;
 typedef uint32_t pixel24_t;
@@ -115,6 +135,7 @@ static unsigned long	r_mask, g_mask, b_mask;
 
 static uint64_t frame_start;
 static float fps_sum;
+static uint64_t frame_time;
 static uint64_t frame;
 
 static void shiftmask_init()
@@ -284,12 +305,81 @@ static void Fixup24(XImage *framebuf, int x, int y, int width, int height)
 
 static void CreateAtoms(void)
 {
-#define CREATE_ATOM(a) a = XInternAtom(x_disp, #a, False)
+#define CREATE_ATOM(a) a = XInternAtom(x_disp, #a, True)
 	CREATE_ATOM(WM_DELETE_WINDOW);
 	CREATE_ATOM(_NET_WM_STATE);
 	CREATE_ATOM(_NET_WM_STATE_MAXIMIZED_VERT);
 	CREATE_ATOM(_NET_WM_STATE_MAXIMIZED_HORZ);
 	CREATE_ATOM(_NET_WM_STATE_FULLSCREEN);
+	CREATE_ATOM(_NET_WM_STATE_FOCUSED);
+	CREATE_ATOM(_NET_WM_STATE_HIDDEN);
+}
+
+static void SetInitialWindowState(int ws)
+{
+	size_t count = 0;
+	Atom atoms[8];
+
+	if (ws & WINDOW_MAXIMIZED)
+	{
+		atoms[count++] = _NET_WM_STATE_MAXIMIZED_VERT;
+		atoms[count++] = _NET_WM_STATE_MAXIMIZED_HORZ;
+	}
+	else if (ws & WINDOW_FULLSCREEN)
+	{
+		atoms[count++] = _NET_WM_STATE_FULLSCREEN;
+	}
+
+	if (count)
+	{
+		XChangeProperty(x_disp, x_win, _NET_WM_STATE, XA_ATOM, 32, PropModeReplace, (unsigned char*)atoms, Q_ARRLEN(atoms));
+	}
+	else
+	{
+		XDeleteProperty(x_disp, x_win, _NET_WM_STATE);
+	}
+}
+
+static void SetFullscreen(qboolean fullscreen)
+{
+	XEvent event = {0};
+
+	if (fullscreen == !!(window_state & WINDOW_FULLSCREEN))
+	{
+		return;
+	}
+
+	event.type = ClientMessage;
+	event.xclient.window = x_win;
+	event.xclient.message_type = _NET_WM_STATE;
+	event.xclient.format = 32;
+
+	event.xclient.data.l[0] = fullscreen ? 1 : 0; // 1 = add, 0 = remove
+	event.xclient.data.l[1] = _NET_WM_STATE_FULLSCREEN;
+	event.xclient.data.l[2] = 0;
+	event.xclient.data.l[3] = 1; // source: application
+	event.xclient.data.l[4] = 0;
+
+	XSendEvent(
+		x_disp,
+		DefaultRootWindow(x_disp),
+		False,
+		SubstructureRedirectMask | SubstructureNotifyMask,
+		&event);
+
+	XFlush(x_disp);
+}
+
+static void VID_Restart(void)
+{
+	SetFullscreen(!!vid_fullscreen.value);
+	frame_time = NSEC_IN_SEC / (unsigned)vid_refreshrate.value;
+	vid_changed = false;
+}
+
+static void VID_Changed(void)
+{
+	vid_changed = true;
 }
 
 // ========================================================================
@@ -464,13 +554,22 @@ static void ResetSharedFrameBuffers(void)
 
 void VID_Init(unsigned char *palette)
 {
-	int			pnum, i, tmp;
+	int			pnum, i, tmp, screen;
 	XVisualInfo template;
 	int			num_visuals;
 	int			template_mask;
+	int			window_state = 0;
+
+	M_RegisterVideoMenu(&vid_menu);
 
 	Cvar_RegisterVariable(&vid_vsync);
+	Cvar_RegisterVariable(&vid_fullscreen);
 	Cvar_RegisterVariable(&vid_refreshrate);
+
+	vid_fullscreen.callback = &VID_Changed;
+	vid_refreshrate.callback = &VID_Changed;
+
+	Cmd_AddCommand("vid_restart", &VID_Restart);
 
 	ignorenext			= 0;
 	vid.width			= SCREEN_WIDTH * 3;
@@ -484,7 +583,8 @@ void VID_Init(unsigned char *palette)
 	srandom(getpid());
 
 	// open the display
-	x_disp = XOpenDisplay(0);
+	x_disp = XOpenDisplay(NULL);
+
 	if (!x_disp)
 	{
 		if (getenv("DISPLAY"))
@@ -539,7 +639,6 @@ void VID_Init(unsigned char *palette)
 	}
 	else // If not specified, use default visual
 	{
-		int screen;
 		screen				= XDefaultScreen(x_disp);
 		template.visualid	= XVisualIDFromVisual(XDefaultVisual(x_disp, screen));
 		template_mask		= VisualIDMask;
@@ -562,12 +661,12 @@ void VID_Init(unsigned char *palette)
 	}
 
 	Sys_DPrintf("Using visualid %d:\n", (int)(x_visinfo->visualid));
-	Sys_DPrintf("	screen %d\n", x_visinfo->screen);
-	Sys_DPrintf("	red_mask 0x%x\n", (int)(x_visinfo->red_mask));
-	Sys_DPrintf("	green_mask 0x%x\n", (int)(x_visinfo->green_mask));
-	Sys_DPrintf("	blue_mask 0x%x\n", (int)(x_visinfo->blue_mask));
-	Sys_DPrintf("	colormap_size %d\n", x_visinfo->colormap_size);
-	Sys_DPrintf("	bits_per_rgb %d\n", x_visinfo->bits_per_rgb);
+	Sys_DPrintf("  screen        %d\n", x_visinfo->screen);
+	Sys_DPrintf("  red_mask      0x%08x\n", (int)(x_visinfo->red_mask));
+	Sys_DPrintf("  green_mask    0x%08x\n", (int)(x_visinfo->green_mask));
+	Sys_DPrintf("  blue_mask     0x%08x\n", (int)(x_visinfo->blue_mask));
+	Sys_DPrintf("  colormap_size %d\n", x_visinfo->colormap_size);
+	Sys_DPrintf("  bits_per_rgb  %d\n", x_visinfo->bits_per_rgb);
 
 	x_vis = x_visinfo->visual;
 
@@ -583,24 +682,24 @@ void VID_Init(unsigned char *palette)
 			x_vis,
 			AllocNone);
 
-		attribs.event_mask = COMMON_XINPUT_FLAGS | ExposureMask;
+		attribs.event_mask		= COMMON_XINPUT_FLAGS;
 		attribs.border_pixel	= 0;
 		attribs.colormap		= tmpcmap;
 
 		// create the main window
 		x_win = XCreateWindow(
-			x_disp,
-			XRootWindow(x_disp, x_visinfo->screen),
-			0,
-			0,		// x, y
-			vid.width,
-			vid.height,
-			0,	// borderwidth
-			x_visinfo->depth,
-			InputOutput,
-			x_vis,
-			attribmask,
-			&attribs);
+			/* display		= */ x_disp,
+			/* parent		= */ XRootWindow(x_disp, x_visinfo->screen),
+			/* x			= */ 0,
+			/* y			= */ 0,
+			/* width		= */ vid.width,
+			/* height		= */ vid.height,
+			/* border_width	= */ 0,
+			/* depth		= */ x_visinfo->depth,
+			/* class		= */ InputOutput,
+			/* visual		= */ x_vis,
+			/* valuemask	= */ attribmask,
+			/* attributes	= */ &attribs);
 
 		XStoreName(x_disp, x_win, "xquake");
 
@@ -619,32 +718,27 @@ void VID_Init(unsigned char *palette)
 		}
 	}
 
-	// inviso cursor
+	// invisible cursor
 	XDefineCursor(x_disp, x_win, CreateNullCursor(x_disp, x_win));
 
 	// create the GC
 	{
 		XGCValues	xgcvalues;
 		int			valuemask = GCGraphicsExposures;
-		xgcvalues.graphics_exposures	= False;
-		x_gc							= XCreateGC(x_disp, x_win, valuemask, &xgcvalues);
+		xgcvalues.graphics_exposures = False;
+		x_gc = XCreateGC(x_disp, x_win, valuemask, &xgcvalues);
 	}
 
 	if (COM_CheckParm("-fullscreen"))
 	{
-		Atom atoms[] = {
-			_NET_WM_STATE_FULLSCREEN,
-		};
-		XChangeProperty(x_disp, x_win, _NET_WM_STATE, XA_ATOM, 32, PropModeReplace, (unsigned char*)atoms, Q_ARRLEN(atoms));
+		window_state |= WINDOW_FULLSCREEN;
 	}
 	else if (COM_CheckParm("-maximized"))
 	{
-		Atom atoms[] = {
-			_NET_WM_STATE_MAXIMIZED_VERT,
-			_NET_WM_STATE_MAXIMIZED_HORZ,
-		};
-		XChangeProperty(x_disp, x_win, _NET_WM_STATE, XA_ATOM, 32, PropModeReplace, (unsigned char*)atoms, Q_ARRLEN(atoms));
+		window_state |= WINDOW_MAXIMIZED;
 	}
+
+	SetInitialWindowState(window_state);
 
 	// map the window
 	XMapWindow(x_disp, x_win);
@@ -859,9 +953,75 @@ struct
 static int	keyq_head	= 0;
 static int	keyq_tail	= 0;
 
-static int	config_notify = 0;
-static int	config_notify_width;
-static int	config_notify_height;
+static int		config_notify = 0;
+static unsigned	config_notify_width;
+static unsigned	config_notify_height;
+
+static void HandleWindowStateChange(void)
+{
+	size_t			i;
+	Atom			actual_type, *states, s;
+	int				actual_format, result;
+	unsigned long	nitems;
+	unsigned long	bytes_after;
+	unsigned char	*data = NULL;
+	qboolean		hmax = false, vmax = false;
+
+	result = XGetWindowProperty(
+		/* display				= */ x_disp,
+		/* w					= */ x_win,
+		/* property				= */ _NET_WM_STATE,
+		/* long_offset			= */ 0,
+		/* long_length			= */ 1024,
+		/* delete				= */ False,
+		/* req_type				= */ XA_ATOM,
+		/* actual_type_return	= */ &actual_type,
+		/* actual_format_return	= */ &actual_format,
+		/* nitems_return		= */ &nitems,
+		/* bytes_after_return	= */ &bytes_after,
+		/* prop_return			= */ &data);
+
+	if (result == Success && actual_type == XA_ATOM && actual_format == 32)
+	{
+		window_state = 0;
+		states = (Atom *)data;
+
+		for (i = 0; i < nitems; i++)
+		{
+			s = states[i];
+			if (s == _NET_WM_STATE_FULLSCREEN)
+			{
+				window_state |= WINDOW_FULLSCREEN;
+			}
+			else if (s == _NET_WM_STATE_FOCUSED)
+			{
+				window_state |= WINDOW_FOCUSED;
+			}
+			else if (s == _NET_WM_STATE_HIDDEN)
+			{
+				window_state |= WINDOW_HIDDEN;
+			}
+			else if (s == _NET_WM_STATE_MAXIMIZED_VERT)
+			{
+				vmax = true;
+			}
+			else if (s == _NET_WM_STATE_MAXIMIZED_HORZ)
+			{
+				hmax = true;
+			}
+		}
+
+		if (vmax && hmax)
+		{
+			window_state |= WINDOW_MAXIMIZED;
+		}
+	}
+
+	if (data)
+	{
+		XFree(data);
+	}
+}
 
 static void GetEvent(void)
 {
@@ -921,14 +1081,18 @@ static void GetEvent(void)
 			break;
 
 		case EnterNotify:
-			focused = true;
-			XGrabPointer(x_disp, x_win, True, 0, GrabModeAsync, GrabModeAsync, x_win, None, CurrentTime);
-			ResetCursorPosition();
+			if (mouse_avail)
+			{
+				XGrabPointer(x_disp, x_win, True, 0, GrabModeAsync, GrabModeAsync, x_win, None, CurrentTime);
+				ResetCursorPosition();
+			}
 			break;
 
 		case LeaveNotify:
-			focused = false;
-			XUngrabPointer(x_disp, CurrentTime);
+			if (mouse_avail)
+			{
+				XUngrabPointer(x_disp, CurrentTime);
+			}
 			break;
 
 		case ClientMessage:
@@ -938,10 +1102,62 @@ static void GetEvent(void)
 			}
 			break;
 
+		case PropertyNotify:
+			if (x_event.xproperty.atom == _NET_WM_STATE)
+			{
+				HandleWindowStateChange();
+			}
+			break;
+
 		default:
 			if (use_shm && x_event.type == x_shmeventtype)
+			{
 				oktodraw = true;
+			}
 	}
+}
+
+static qboolean HandleConfigNotify(void)
+{
+	config_notify = 0;
+
+	if ((vid.width == config_notify_width && vid.height == config_notify_height))
+	{
+		return false;
+	}
+
+	vid.width	= config_notify_width;
+	vid.height	= config_notify_height;
+
+	if (use_shm)
+	{
+		ResetSharedFrameBuffers();
+	}
+	else
+	{
+		ResetFrameBuffer();
+	}
+
+	vid.rowbytes		= x_framebuffer[0]->bytes_per_line;
+	vid.buffer			= (pixel_t *)x_framebuffer[current_framebuffer]->data;
+	vid.conbuffer		= vid.buffer;
+	vid.conwidth		= vid.width;
+	vid.conheight		= vid.height;
+	vid.conrowbytes		= vid.rowbytes;
+	vid.recalc_refdef	= 1;			// force a surface cache flush
+	vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
+
+	Con_CheckResize();
+	Con_Clear_f();
+
+	if (mouse_avail)
+	{
+		ResetCursorPosition();
+	}
+
+	frame_start = gettime_ns();
+
+	return true;
 }
 
 static void WaitForNextFrame(void)
@@ -950,7 +1166,7 @@ static void WaitForNextFrame(void)
 	int64_t diff;
 	uint64_t prev_frame, next_frame, current;
 
-	next_frame = frame_start + NSEC_IN_SEC / (unsigned)vid_refreshrate.value;
+	next_frame = frame_start + frame_time;
 
 	current = gettime_ns();
 
@@ -980,33 +1196,18 @@ static void WaitForNextFrame(void)
 // flushes the given rectangles from the view buffer to the screen
 void VID_Update(vrect_t *rects)
 {
-	// if the window changes dimension, skip this frame
 	if (config_notify)
 	{
-		config_notify	= 0;
-		vid.width		= config_notify_width & ~7;
-		vid.height		= config_notify_height;
-		if (use_shm)
+		// if the window changes dimension, skip this frame
+		if (HandleConfigNotify())
 		{
-			ResetSharedFrameBuffers();
+			return;
 		}
-		else
-		{
-			ResetFrameBuffer();
-		}
-		ResetCursorPosition();
-		vid.rowbytes		= x_framebuffer[0]->bytes_per_line;
-		vid.buffer			= (pixel_t *)x_framebuffer[current_framebuffer]->data;
-		vid.conbuffer		= vid.buffer;
-		vid.conwidth		= vid.width;
-		vid.conheight		= vid.height;
-		vid.conrowbytes		= vid.rowbytes;
-		vid.recalc_refdef	= 1;			// force a surface cache flush
-		vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
-		Con_CheckResize();
-		Con_Clear_f();
-		frame_start = gettime_ns();
-		return;
+	}
+
+	if (vid_changed)
+	{
+		VID_Restart();
 	}
 
 	// force full update if not 8bit
@@ -1015,17 +1216,22 @@ void VID_Update(vrect_t *rects)
 		scr_fullupdate = 0;
 	}
 
+	if ((window_state & WINDOW_HIDDEN) || !(window_state & WINDOW_FOCUSED))
+	{
+		goto vsync;
+	}
+
 	if (use_shm)
 	{
 		while (rects)
 		{
 			if (x_visinfo->depth == 16)
 			{
-				Fixup16(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+				Fixup16(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width, rects->height);
 			}
 			else if (x_visinfo->depth == 24)
 			{
-				Fixup24(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width,	rects->height);
+				Fixup24(x_framebuffer[current_framebuffer], rects->x, rects->y, rects->width, rects->height);
 			}
 			if (!XShmPutImage(x_disp,
 				x_win,
@@ -1082,6 +1288,7 @@ void VID_Update(vrect_t *rects)
 		XSync(x_disp, False);
 	}
 
+vsync:
 	if (vid_vsync.value)
 	{
 		WaitForNextFrame();
@@ -1137,9 +1344,13 @@ void D_EndDirectRect(int x, int y, int width, int height)
 void IN_Init(void)
 {
 	Cvar_RegisterVariable(&m_filter);
+
 	if (COM_CheckParm("-nomouse"))
+	{
 		return;
-	mouse_x		= mouse_y = 0.0;
+	}
+
+	mouse_x = mouse_y = 0.0;
 	mouse_avail = 1;
 }
 
@@ -1205,6 +1416,140 @@ void IN_Move(usercmd_t *cmd)
 			cmd->forwardmove -= m_forward.value * mouse_y;
 	}
 	mouse_x = mouse_y = 0.0;
+}
+
+typedef enum menu_type_s
+{
+	menu_type_value,
+	menu_type_onoff,
+} menu_type_t;
+
+typedef struct vid_option_s
+{
+	menu_type_t	type;
+	union
+	{
+		cvar_t*	cvar;
+		void	(*func)(void);
+	};
+	const char	*name;
+	int			min, max;
+} vid_option_t;
+
+static unsigned vid_opt_current;
+
+static vid_option_t vid_opts[] = {
+	{
+		.type	= menu_type_onoff,
+		.cvar	= &vid_fullscreen,
+		.name	= "Fullscreen",
+	},
+	{
+		.type	= menu_type_onoff,
+		.cvar	= &vid_vsync,
+		.name	= "V-Sync",
+	},
+	{
+		.type	= menu_type_value,
+		.cvar	= &vid_refreshrate,
+		.name	= "Refresh rate",
+		.min	= 20,
+		.max	= 120,
+	},
+};
+
+static void VID_Menu_Draw(void)
+{
+	size_t			i, y;
+	const char		*title;
+	vid_option_t	*o;
+
+	y = 4;
+
+	M_DrawPlaque();
+	M_DrawMenuHeader("gfx/p_option.lmp");
+
+	y += 28;
+
+	title = "Video Options";
+	M_PrintWhite((SCREEN_WIDTH - CHAR_WIDTH * strlen(title)) / 2, y, title);
+
+	y += 2 * CHAR_WIDTH;
+
+	for (i = 0; i < Q_ARRLEN(vid_opts); ++i, y += CHAR_WIDTH)
+	{
+		o = &vid_opts[i];
+		M_Print (16 + 22 * CHAR_WIDTH - strlen(o->name) * CHAR_WIDTH, y, o->name);
+		switch (o->type)
+		{
+			case menu_type_onoff:
+				M_DrawCheckbox(220, y, !!o->cvar->value);
+				break;
+			case menu_type_value:
+				M_Print(220, y, va("%u", (unsigned)o->cvar->value));
+				break;
+		}
+
+		if (vid_opt_current == i)
+		{
+			M_DrawMenuCursor(200, y);
+		}
+	}
+}
+
+static void VID_Menu_Key(int key)
+{
+	int				value;
+	vid_option_t	*o;
+
+	o = &vid_opts[vid_opt_current];
+
+	switch (key)
+	{
+		case K_ESCAPE:
+			S_LocalSound ("misc/menu1.wav");
+			M_Menu_Options_f ();
+			break;
+
+		case K_LEFTARROW:
+		case K_RIGHTARROW:
+			S_LocalSound ("misc/menu3.wav");
+			switch (o->type)
+			{
+				case menu_type_onoff:
+					Cvar_SetValue(o->cvar->name, !o->cvar->value);
+					break;
+
+				case menu_type_value:
+					value = o->cvar->value + (key == K_LEFTARROW ? -5 : 5);
+					if (value > o->max)
+					{
+						value = o->max;
+					}
+					else if (value < o->min)
+					{
+						value = o->min;
+					}
+					Cvar_SetValue(o->cvar->name, value);
+					break;
+			}
+			break;
+
+		case K_DOWNARROW:
+		case K_UPARROW:
+			S_LocalSound ("misc/menu1.wav");
+			value = vid_opt_current + (key == K_DOWNARROW ? 1 : -1);
+			if (value < 0)
+			{
+				value = Q_ARRLEN(vid_opts) - 1;
+			}
+			else if (value >= (int)Q_ARRLEN(vid_opts))
+			{
+				value = 0;
+			}
+			vid_opt_current = value;
+			break;
+	}
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

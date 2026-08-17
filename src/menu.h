@@ -32,6 +32,40 @@ Q_BEGIN_DECLS
 
 extern	int	m_activenet;
 
+typedef enum m_state_e
+{
+	m_none,
+	m_main,
+	m_singleplayer,
+	m_load,
+	m_save,
+	m_multiplayer,
+	m_setup,
+	m_net,
+	m_options,
+	m_video,
+	m_keys,
+	m_help,
+	m_quit,
+	m_serialconfig,
+	m_modemconfig,
+	m_lanconfig,
+	m_gameoptions,
+	m_search,
+	m_slist
+} m_state_t;
+
+typedef struct menu_s
+{
+	void (*draw)(void);
+	void (*key)(int key);
+} menu_t;
+
+extern m_state_t m_state;
+extern m_state_t m_return_state;
+extern qboolean m_return_onerror;
+extern char m_return_reason[32];
+
 //
 // menus
 //
@@ -39,6 +73,26 @@ void M_Init (void);
 void M_Keydown (int key);
 void M_Draw (void);
 void M_ToggleMenu_f (void);
+void M_RegisterVideoMenu (menu_t *m);
+
+void M_Menu_Main_f (void);
+void M_Menu_Options_f (void);
+void M_Menu_Quit_f (void);
+
+//
+// drawing
+//
+void M_DrawCharacter (int cx, int cy, int num);
+void M_Print (int cx, int cy, const char *str);
+void M_PrintWhite (int cx, int cy, const char *str);
+void M_DrawTransPic (int x, int y, qpic_t *pic);
+void M_DrawPic (int x, int y, qpic_t *pic);
+void M_DrawSlider (int x, int y, float range);
+void M_DrawCheckbox (int x, int y, int on);
+void M_DrawMenuCursor (int x, int y);
+void M_DrawTextCursor (int x, int y);
+void M_DrawPlaque (void);
+void M_DrawMenuHeader (const char *path);
 
 Q_END_DECLS
 
