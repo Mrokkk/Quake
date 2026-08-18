@@ -178,6 +178,20 @@ float	Q_atof (char *str);
 #define Q_vsnprintf	vsnprintf
 #endif
 
+// http://www.cse.yorku.ca/~oz/hash.html
+static inline unsigned long Q_HashString(const char *str)
+{
+	unsigned long hash = 0;
+	int c;
+
+	while ((c = *str++))
+	{
+		hash = c + (hash << 6) + (hash << 16) - hash;
+	}
+
+	return hash;
+}
+
 //============================================================================
 
 extern	char		com_token[1024];

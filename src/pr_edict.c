@@ -306,22 +306,6 @@ typedef struct pos_s
 
 static bucket_t		buckets[BUCKETS_COUNT];
 
-static uint32_t HashString(const char *string)
-{
-	uint32_t h = 0, g;
-
-	while (*string)
-	{
-		h = (h << 4) + *((uint8_t *)string++);
-		if ((g = h & 0xf0000000))
-		{
-			h ^= g >> 24;
-		}
-		h &= ~g;
-	}
-	return h;
-}
-
 static void EnsureBucketCapacity(bucket_t* bucket)
 {
 	if (bucket->size + 1 > bucket->capacity)
@@ -361,10 +345,10 @@ static string_t InsertInternedString(const char *string, uint32_t bucket_id)
 
 string_t PR_CreateServerString(const char *string)
 {
-	uint32_t	hash, bucket_id, index;
-	bucket_t	*bucket;
+	unsigned long	hash, bucket_id, index;
+	bucket_t		*bucket;
 
-	hash = HashString(string);
+	hash = Q_HashString(string);
 	bucket_id = hash % BUCKETS_COUNT;
 	bucket = &buckets[bucket_id];
 
@@ -385,9 +369,9 @@ string_t PR_CreateServerString(const char *string)
 
 static string_t PR_CreateString(const char *string, size_t size)
 {
-	uint32_t	hash, bucket_id, index;
-	bucket_t*	bucket;
-	char		*new_string;
+	unsigned long	hash, bucket_id, index;
+	bucket_t*		bucket;
+	char			*new_string;
 
 	if (!size)
 	{
@@ -395,7 +379,7 @@ static string_t PR_CreateString(const char *string, size_t size)
 		return 0;
 	}
 
-	hash = HashString(string);
+	hash = Q_HashString(string);
 	bucket_id = hash % BUCKETS_COUNT;
 	bucket = &buckets[bucket_id];
 
