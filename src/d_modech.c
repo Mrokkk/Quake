@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -27,7 +27,7 @@ int	d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
 int	d_y_aspect_shift, d_pix_min, d_pix_max, d_pix_shift;
 
 int		d_scantable[MAXHEIGHT];
-short	*zspantable[MAXHEIGHT]; 
+short	*zspantable[MAXHEIGHT];
 
 /*
 ================
@@ -48,24 +48,20 @@ void D_ViewChanged (void)
 {
 	int rowbytes;
 
-	if (r_dowarp)
-		rowbytes = WARP_WIDTH;
-	else
-		rowbytes = vid.rowbytes;
+	rowbytes = r_dowarp ? WARP_WIDTH : vid.rowbytes;
 
 	scale_for_mip = xscale;
 	if (yscale > xscale)
 		scale_for_mip = yscale;
 
-	d_zrowbytes = vid.width * 2;
 	d_zwidth = vid.width;
 
-	d_pix_min = r_refdef.vrect.width / 320;
+	d_pix_min = r_refdef.vrect.width / (SCREEN_WIDTH + 100);
 	if (d_pix_min < 1)
 		d_pix_min = 1;
 
-	d_pix_max = (int)((float)r_refdef.vrect.width / (320.0 / 4.0) + 0.5);
-	d_pix_shift = 8 - (int)((float)r_refdef.vrect.width / 320.0 + 0.5);
+	d_pix_max = (int)((float)r_refdef.vrect.width / ((float)SCREEN_WIDTH / 6.0) + 0.5);
+	d_pix_shift = 8 - (int)((float)r_refdef.vrect.width / (float)SCREEN_WIDTH + 0.5);
 	if (d_pix_max < 1)
 		d_pix_max = 1;
 
@@ -77,8 +73,7 @@ void D_ViewChanged (void)
 	d_vrectx = r_refdef.vrect.x;
 	d_vrecty = r_refdef.vrect.y;
 	d_vrectright_particle = r_refdef.vrectright - d_pix_max;
-	d_vrectbottom_particle =
-			r_refdef.vrectbottom - (d_pix_max << d_y_aspect_shift);
+	d_vrectbottom_particle = r_refdef.vrectbottom - (d_pix_max << d_y_aspect_shift);
 
 	{
 		size_t	i;
@@ -94,4 +89,3 @@ void D_ViewChanged (void)
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :
-

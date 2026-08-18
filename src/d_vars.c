@@ -39,7 +39,6 @@ pixel_t			*cacheblock;
 int				cachewidth;
 pixel_t			*d_viewbuffer;
 short			*d_pzbuffer;
-unsigned int	d_zrowbytes;
 unsigned int	d_zwidth;
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

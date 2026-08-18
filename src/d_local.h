@@ -90,7 +90,7 @@ extern surfcache_t	*D_CacheSurface (msurface_t *surface, int miplevel);
 extern int D_MipLevelForScale (float scale);
 
 extern short *d_pzbuffer;
-extern unsigned int d_zrowbytes, d_zwidth;
+extern unsigned int d_zwidth;
 
 extern int	*d_pscantable;
 extern int	d_scantable[MAXHEIGHT];

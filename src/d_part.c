@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -30,9 +30,8 @@ D_EndParticles
 */
 void D_EndParticles (void)
 {
-// not used by software driver
+	// not used by software driver
 }
-
 
 /*
 ==============
@@ -41,7 +40,7 @@ D_StartParticles
 */
 void D_StartParticles (void)
 {
-// not used by software driver
+	// not used by software driver
 }
 
 /*
@@ -55,25 +54,27 @@ void D_DrawParticle (particle_t *pparticle)
 	float	zi;
 	byte	*pdest;
 	short	*pz;
-	int		i, izi, pix, count, u, v;
+	int		i, izi, pix, count, u, v, len;
 
-// transform point
+	// transform point
 	VectorSubtract (pparticle->org, r_origin, local);
+
+	len = Length (local);
 
 	transformed[0] = DotProduct(local, r_pright);
 	transformed[1] = DotProduct(local, r_pup);
-	transformed[2] = DotProduct(local, r_ppn);		
+	transformed[2] = DotProduct(local, r_ppn);
 
 	if (transformed[2] < PARTICLE_Z_CLIP)
 		return;
 
-// project the point
-// FIXME: preadjust xcenter and ycenter
+	// project the point
+	// FIXME: preadjust xcenter and ycenter
 	zi = 1.0 / transformed[2];
 	u = (int)(xcenter + zi * transformed[0] + 0.5);
 	v = (int)(ycenter - zi * transformed[1] + 0.5);
 
-	if ((v > d_vrectbottom_particle) || 
+	if ((v > d_vrectbottom_particle) ||
 		(u > d_vrectright_particle) ||
 		(v < d_vrecty) ||
 		(u < d_vrectx))
@@ -85,12 +86,8 @@ void D_DrawParticle (particle_t *pparticle)
 	pdest = d_viewbuffer + d_scantable[v] + u;
 	izi = (int)(zi * 0x8000);
 
-	pix = izi >> d_pix_shift;
-
-	if (pix < d_pix_min)
-		pix = d_pix_min;
-	else if (pix > d_pix_max)
-		pix = d_pix_max;
+	len = Clampi(1, 100, len / 80);
+	pix = Clampi(d_pix_min, d_pix_max, (izi >> d_pix_shift) / len);
 
 	switch (pix)
 	{
