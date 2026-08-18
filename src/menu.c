@@ -455,7 +455,7 @@ void M_ScanSaves (void)
 
 	for (i = 0; i < MAX_SAVEGAMES; i++)
 	{
-		strcpy (m_filenames[i], "--- Q_UNUSED SLOT ---");
+		strcpy (m_filenames[i], "--- UNUSED SLOT ---");
 		loadable[i] = false;
 		if ((res = Q_snprintf (name, sizeof(name), "%s/s%i.sav", com_gamedir, i)) >= (int)sizeof(name))
 		{
