@@ -38,6 +38,7 @@ cvar_t		scr_showram = {"showram","1"};
 cvar_t		scr_showturtle = {"showturtle","0"};
 cvar_t		scr_showpause = {"showpause","1"};
 cvar_t		scr_printspeed = {"scr_printspeed","8"};
+cvar_t		scr_showfps = {"scr_showfps", "0", true};
 
 qboolean	scr_initialized;		// ready to draw
 
@@ -51,6 +52,7 @@ int			scr_scaling, scr_xoff, scr_yoff;
 int			clearconsole;
 int			clearnotify;
 
+float		vid_fps;
 viddef_t	vid;				// global video state
 
 vrect_t		*pconupdate;
@@ -187,6 +189,13 @@ void SCR_CheckDrawCenterString (void)
 	SCR_DrawCenterString ();
 }
 
+void SCR_DrawFPS (void)
+{
+	static char s[32];
+	Q_snprintf(s, sizeof(s), "FPS %5.1f", vid_fps);
+	Draw_String_Align (-strlen(s) * (CHAR_WIDTH + 1), 0, RIGHT, TOP, s);
+}
+
 //=============================================================================
 
 /*
@@ -196,19 +205,19 @@ CalcFov
 */
 float CalcFov (float fov_x, float width, float height)
 {
-        float   a;
-        float   x;
+	float   a;
+	float   x;
 
-        if (fov_x < 1 || fov_x > 179)
-                Sys_Error ("Bad fov: %f", fov_x);
+	if (fov_x < 1 || fov_x > 179)
+		Sys_Error ("Bad fov: %f", fov_x);
 
-        x = width/tan(fov_x/360*M_PI);
+	x = width / tan(fov_x / 360 * M_PI);
 
-        a = atan (height/x);
+	a = atan (height / x);
 
-        a = a*360/M_PI;
+	a = a * 360 / M_PI;
 
-        return a;
+	return a;
 }
 
 /*
@@ -330,6 +339,7 @@ void SCR_Init (void)
 	Cvar_RegisterVariable (&scr_showpause);
 	Cvar_RegisterVariable (&scr_centertime);
 	Cvar_RegisterVariable (&scr_printspeed);
+	Cvar_RegisterVariable (&scr_showfps);
 
 //
 // register our commands
@@ -940,6 +950,11 @@ void SCR_UpdateScreen (void)
 		Sbar_Draw ();
 		SCR_DrawConsole ();
 		M_Draw ();
+	}
+
+	if (scr_showfps.value)
+	{
+		SCR_DrawFPS ();
 	}
 
 	D_DisableBackBufferAccess ();	// for adapters that can't stay mapped in

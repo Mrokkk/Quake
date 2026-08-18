@@ -1187,8 +1187,7 @@ static void WaitForNextFrame(void)
 
 	if (++frame % 60 == 0)
 	{
-		// TODO: draw FPS on screen
-		Sys_Printf("FPS: %0.2f\n", fps_sum / 60);
+		vid_fps = fps_sum / 60;
 		fps_sum = 0;
 	}
 }
