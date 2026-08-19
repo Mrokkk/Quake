@@ -246,6 +246,7 @@ typedef struct
 extern	cvar_t	cl_name;
 extern	cvar_t	cl_color;
 
+extern	cvar_t	cl_alwaysrun;
 extern	cvar_t	cl_upspeed;
 extern	cvar_t	cl_forwardspeed;
 extern	cvar_t	cl_backspeed;
@@ -268,11 +269,11 @@ extern	cvar_t	lookspring;
 extern	cvar_t	lookstrafe;
 extern	cvar_t	sensitivity;
 
+extern	cvar_t	m_invert;
 extern	cvar_t	m_pitch;
 extern	cvar_t	m_yaw;
 extern	cvar_t	m_forward;
 extern	cvar_t	m_side;
-
 
 #define	MAX_TEMP_ENTITIES	64			// lightning bolts, etc
 #define	MAX_STATIC_ENTITIES	128			// torches, etc
@@ -326,6 +327,8 @@ extern 	kbutton_t 	in_strafe;
 extern 	kbutton_t 	in_speed;
 
 void CL_InitInput (void);
+void CL_UpdateSpeed (void);
+void CL_UpdatePitch (void);
 void CL_SendCmd (void);
 void CL_SendMove (usercmd_t *cmd);
 

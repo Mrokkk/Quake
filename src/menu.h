@@ -87,7 +87,7 @@ void M_Print (int cx, int cy, const char *str);
 void M_PrintWhite (int cx, int cy, const char *str);
 void M_DrawTransPic (int x, int y, qpic_t *pic);
 void M_DrawPic (int x, int y, qpic_t *pic);
-void M_DrawSlider (int x, int y, float range);
+void M_DrawSlider (int x, int y, float range, float value, const char *fmt);
 void M_DrawCheckbox (int x, int y, int on);
 void M_DrawMenuCursor (int x, int y);
 void M_DrawTextCursor (int x, int y);

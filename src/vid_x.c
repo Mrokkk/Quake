@@ -1478,20 +1478,20 @@ static void VID_Menu_Draw(void)
 	for (i = 0; i < Q_ARRLEN(vid_opts); ++i, y += CHAR_WIDTH)
 	{
 		o = &vid_opts[i];
-		M_Print (16 + 22 * CHAR_WIDTH - strlen(o->name) * CHAR_WIDTH, y, o->name);
+		M_Print (16 + 18 * CHAR_WIDTH - strlen(o->name) * CHAR_WIDTH, y, o->name);
 		switch (o->type)
 		{
 			case menu_type_onoff:
-				M_DrawCheckbox(220, y, !!o->cvar->value);
+				M_DrawCheckbox(188, y, !!o->cvar->value);
 				break;
 			case menu_type_value:
-				M_Print(220, y, va("%u", (unsigned)o->cvar->value));
+				M_Print(188, y, va("%u", (unsigned)o->cvar->value));
 				break;
 		}
 
 		if (vid_opt_current == i)
 		{
-			M_DrawMenuCursor(200, y);
+			M_DrawMenuCursor(168, y);
 		}
 	}
 }
@@ -1548,6 +1548,17 @@ static void VID_Menu_Key(int key)
 			}
 			vid_opt_current = value;
 			break;
+
+		case K_ENTER:
+			switch (o->type)
+			{
+				case menu_type_onoff:
+					Cvar_SetValue(o->cvar->name, !o->cvar->value);
+					break;
+
+				default:
+					break;
+			}
 	}
 }
 

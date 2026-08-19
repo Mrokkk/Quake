@@ -28,16 +28,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cvar_t	cl_name = {"_cl_name", "player", true};
 cvar_t	cl_color = {"_cl_color", "0", true};
 
-cvar_t	cl_shownet = {"cl_shownet","0"};	// can be 0, 1, or 2
-cvar_t	cl_nolerp = {"cl_nolerp","0"};
+cvar_t	cl_shownet = {"cl_shownet", "0"};	// can be 0, 1, or 2
+cvar_t	cl_nolerp = {"cl_nolerp", "0"};
 
-cvar_t	lookspring = {"lookspring","0", true};
-cvar_t	lookstrafe = {"lookstrafe","0", true};
-cvar_t	sensitivity = {"sensitivity","3", true};
+cvar_t	lookspring = {"lookspring", "0", true};
+cvar_t	lookstrafe = {"lookstrafe", "0", true};
+cvar_t	sensitivity = {"sensitivity", "3", true};
 
-cvar_t	m_pitch = {"m_pitch","0.022", true};
-cvar_t	m_yaw = {"m_yaw","0.022", true};
-cvar_t	m_forward = {"m_forward","1", true};
+cvar_t	m_invert = {"m_invert", "0", true};
+cvar_t	m_pitch = {"m_pitch", "0.022", true};
+cvar_t	m_yaw = {"m_yaw", "0.022", true};
+cvar_t	m_forward = {"m_forward", "1", true};
 cvar_t	m_side = {"m_side","0.8", true};
 
 
@@ -727,6 +728,7 @@ void CL_Init (void)
 //
 	Cvar_RegisterVariable (&cl_name);
 	Cvar_RegisterVariable (&cl_color);
+	Cvar_RegisterVariable (&cl_alwaysrun);
 	Cvar_RegisterVariable (&cl_upspeed);
 	Cvar_RegisterVariable (&cl_forwardspeed);
 	Cvar_RegisterVariable (&cl_backspeed);
@@ -741,6 +743,7 @@ void CL_Init (void)
 	Cvar_RegisterVariable (&lookstrafe);
 	Cvar_RegisterVariable (&sensitivity);
 
+	Cvar_RegisterVariable (&m_invert);
 	Cvar_RegisterVariable (&m_pitch);
 	Cvar_RegisterVariable (&m_yaw);
 	Cvar_RegisterVariable (&m_forward);
@@ -754,6 +757,9 @@ void CL_Init (void)
 	Cmd_AddCommand ("stop", CL_Stop_f);
 	Cmd_AddCommand ("playdemo", CL_PlayDemo_f);
 	Cmd_AddCommand ("timedemo", CL_TimeDemo_f);
+
+	cl_alwaysrun.callback = &CL_UpdateSpeed;
+	m_invert.callback = &CL_UpdatePitch;
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

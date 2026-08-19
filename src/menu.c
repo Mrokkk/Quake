@@ -245,6 +245,55 @@ void M_DrawTextBox (int x, int y, int width, int lines)
 	M_DrawTransPic (cx, cy+8, p);
 }
 
+#define SLIDER_RANGE	10
+
+void M_DrawSlider (int x, int y, float range, float value, const char *fmt)
+{
+	int	i;
+	char buf[128];
+
+	range = Clampf(0, 1, range);
+	M_DrawCharacter (x - 8, y, 128);
+	for (i = 0; i < SLIDER_RANGE; i++)
+	{
+		M_DrawCharacter (x + i*8, y, 129);
+	}
+	M_DrawCharacter (x + i * 8, y, 130);
+	M_DrawCharacter (x + (SLIDER_RANGE - 1) * 8 * range, y, 131);
+	Q_snprintf (buf, sizeof(buf), fmt, value);
+	M_Print (x + (SLIDER_RANGE + 1) * CHAR_WIDTH, y, buf);
+}
+
+void M_DrawCheckbox (int x, int y, int on)
+{
+	M_Print (x, y, on ? "on" : "off");
+}
+
+void M_DrawMenuCursor (int x, int y)
+{
+	M_DrawCharacter (x, y, 12 + ((int)(realtime * 4) & 1));
+}
+
+void M_DrawTextCursor (int x, int y)
+{
+	M_DrawCharacter (x, y, 10 + ((int)(realtime * 4) & 1));
+}
+
+void M_DrawPlaque (void)
+{
+	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
+}
+
+void M_DrawMenuHeader (const char *path)
+{
+	qpic_t *p;
+
+	p = Draw_CachePic ((char *)path);
+	M_DrawPic ((SCREEN_WIDTH - p->width) / 2, 4, p);
+}
+
+
+
 //=============================================================================
 
 int m_save_demonum;
@@ -1023,289 +1072,316 @@ again:
 //=============================================================================
 /* OPTIONS MENU */
 
+enum
+{
+	option_onoff,
+	option_slider,
+	option_button,
+};
+
+enum
+{
+	action_none,
+	action_callback,
+	action_cmd,
+};
+
+typedef struct option_s
+{
+	int						type;
+	unsigned				namelen;
+	const char				*name;
+	union
+	{
+		struct
+		{
+			cvar_t			*cvar;
+		} onoff;
+		struct
+		{
+			cvar_t			*cvar;
+			const char		*fmt;
+			float			min, max, step;
+			qboolean		inverted;
+		} slider;
+		struct
+		{
+			int				action;
+			union
+			{
+				void		(*callback)(void);
+				const char	*cmd;
+			};
+		} button;
+	};
+} option_t;
+
+static option_t options[] = {
+	{
+		.type = option_button,
+		.name = "Controls",
+		.button = {
+			.action = action_callback,
+			.callback = &M_Menu_Keys_f,
+		},
+	},
+	{
+		.type = option_button,
+		.name = "Reset config",
+		.button = {
+			.action = action_cmd,
+			.cmd = "exec default.cfg\n",
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Screen size",
+		.slider = {
+			.cvar = &scr_viewsize,
+			.fmt = "%0.0f",
+			.min = 30,
+			.max = 120,
+			.step = 10,
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Brightness",
+		.slider = {
+			.cvar = &v_gamma,
+			.fmt = "%0.2f",
+			.min = 0.5,
+			.max = 1.0,
+			.step = 0.05,
+			.inverted = true,
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Mouse Speed",
+		.slider = {
+			.cvar = &sensitivity,
+			.fmt = "%0.1f",
+			.min = 1,
+			.max = 11,
+			.step = 0.5,
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Music Volume",
+		.slider = {
+			.cvar = &bgmvolume,
+			.fmt = "%0.1f",
+			.min = 0,
+			.max = 1,
 #ifdef _WIN32
-#define	OPTIONS_ITEMS	14
+			.step = 1.0,
 #else
-#define	OPTIONS_ITEMS	13
+			.step = 0.1,
 #endif
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Sound Volume",
+		.slider = {
+			.cvar = &volume,
+			.fmt = "%0.1f",
+			.min = 0,
+			.max = 1,
+			.step = 0.1,
+		},
+	},
+	{
+		.type = option_onoff,
+		.name = "Always Run",
+		.onoff = {
+			.cvar = &cl_alwaysrun,
+		},
+	},
+	{
+		.type = option_onoff,
+		.name = "Invert Mouse",
+		.onoff = {
+			.cvar = &m_invert,
+		},
+	},
+	{
+		.type = option_onoff,
+		.name = "Lookspring",
+		.onoff = {
+			.cvar = &lookspring,
+		},
+	},
+	{
+		.type = option_onoff,
+		.name = "Lookstrafe",
+		.onoff = {
+			.cvar = &lookstrafe,
+		},
+	},
+#ifdef _WIN32
+	{
+		.type = option_onoff,
+		.name = "Use Mouse",
+		.onoff = {
+			.cvar = &_windowed_mouse,
+		},
+	},
+#endif
+};
 
-#define	SLIDER_RANGE	10
-
-int		options_cursor;
+static int options_cursor;
 
 void M_Menu_Options_f (void)
 {
+	size_t i;
+
 	key_dest = key_menu;
 	m_state = m_options;
 	m_entersound = true;
 
-#ifdef _WIN32
-	if ((options_cursor == 13) && (modestate != MS_WINDOWED))
+	for (i = 0; i < Q_ARRLEN(options); ++i)
 	{
-		options_cursor = 0;
+		options[i].namelen = strlen(options[i].name);
 	}
-#endif
-}
-
-void M_AdjustSliders (int dir)
-{
-	S_LocalSound ("misc/menu3.wav");
-
-	switch (options_cursor)
-	{
-	case 3:	// screen size
-		scr_viewsize.value += dir * 10;
-		if (scr_viewsize.value < 30)
-			scr_viewsize.value = 30;
-		if (scr_viewsize.value > 120)
-			scr_viewsize.value = 120;
-		Cvar_SetValue ("viewsize", scr_viewsize.value);
-		break;
-	case 4:	// gamma
-		v_gamma.value -= dir * 0.05;
-		if (v_gamma.value < 0.5)
-			v_gamma.value = 0.5;
-		if (v_gamma.value > 1)
-			v_gamma.value = 1;
-		Cvar_SetValue ("gamma", v_gamma.value);
-		break;
-	case 5:	// mouse speed
-		sensitivity.value += dir * 0.5;
-		if (sensitivity.value < 1)
-			sensitivity.value = 1;
-		if (sensitivity.value > 11)
-			sensitivity.value = 11;
-		Cvar_SetValue ("sensitivity", sensitivity.value);
-		break;
-	case 6:	// music volume
-#ifdef _WIN32
-		bgmvolume.value += dir * 1.0;
-#else
-		bgmvolume.value += dir * 0.1;
-#endif
-		if (bgmvolume.value < 0)
-			bgmvolume.value = 0;
-		if (bgmvolume.value > 1)
-			bgmvolume.value = 1;
-		Cvar_SetValue ("bgmvolume", bgmvolume.value);
-		break;
-	case 7:	// sfx volume
-		volume.value += dir * 0.1;
-		if (volume.value < 0)
-			volume.value = 0;
-		if (volume.value > 1)
-			volume.value = 1;
-		Cvar_SetValue ("volume", volume.value);
-		break;
-
-	case 8:	// allways run
-		if (cl_forwardspeed.value > 200)
-		{
-			Cvar_SetValue ("cl_forwardspeed", 200);
-			Cvar_SetValue ("cl_backspeed", 200);
-		}
-		else
-		{
-			Cvar_SetValue ("cl_forwardspeed", 400);
-			Cvar_SetValue ("cl_backspeed", 400);
-		}
-		break;
-
-	case 9:	// invert mouse
-		Cvar_SetValue ("m_pitch", -m_pitch.value);
-		break;
-
-	case 10:	// lookspring
-		Cvar_SetValue ("lookspring", !lookspring.value);
-		break;
-
-	case 11:	// lookstrafe
-		Cvar_SetValue ("lookstrafe", !lookstrafe.value);
-		break;
-
-#ifdef _WIN32
-	case 13:	// _windowed_mouse
-		Cvar_SetValue ("_windowed_mouse", !_windowed_mouse.value);
-		break;
-#endif
-	}
-}
-
-void M_DrawSlider (int x, int y, float range)
-{
-	int	i;
-
-	if (range < 0)
-		range = 0;
-	if (range > 1)
-		range = 1;
-	M_DrawCharacter (x-8, y, 128);
-	for (i=0 ; i<SLIDER_RANGE ; i++)
-		M_DrawCharacter (x + i*8, y, 129);
-	M_DrawCharacter (x+i*8, y, 130);
-	M_DrawCharacter (x + (SLIDER_RANGE-1)*8 * range, y, 131);
-}
-
-void M_DrawCheckbox (int x, int y, int on)
-{
-	if (on)
-		M_Print (x, y, "on");
-	else
-		M_Print (x, y, "off");
-}
-
-void M_DrawMenuCursor (int x, int y)
-{
-	M_DrawCharacter (x, y, 12 + ((int)(realtime * 4) & 1));
-}
-
-void M_DrawTextCursor (int x, int y)
-{
-	M_DrawCharacter (x, y, 10 + ((int)(realtime * 4) & 1));
-}
-
-void M_DrawPlaque (void)
-{
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-}
-
-void M_DrawMenuHeader (const char *path)
-{
-	qpic_t *p;
-
-	p = Draw_CachePic ((char *)path);
-	M_DrawPic ((SCREEN_WIDTH - p->width) / 2, 4, p);
 }
 
 void M_Options_Draw (void)
 {
-	float		r;
+	size_t		i;
+	int			y;
+	float		r, min, max, v;
+	option_t	*o;
+	const int	starty = 32;
 
 	M_DrawPlaque ();
 	M_DrawMenuHeader ("gfx/p_option.lmp");
 
-	M_Print (16, 32, "    Customize controls");
-	M_Print (16, 40, "         Go to console");
-	M_Print (16, 48, "     Reset to defaults");
+	y = starty;
 
-	M_Print (16, 56, "           Screen size");
-	r = (scr_viewsize.value - 30) / (120 - 30);
-	M_DrawSlider (220, 56, r);
+	for (i = 0; i < Q_ARRLEN(options); ++i, y += CHAR_HEIGHT)
+	{
+		o = &options[i];
 
-	M_Print (16, 64, "            Brightness");
-	r = (1.0 - v_gamma.value) / 0.5;
-	M_DrawSlider (220, 64, r);
+		M_Print (16 + (18 - o->namelen) * CHAR_WIDTH, y, o->name);
 
-	M_Print (16, 72, "           Mouse Speed");
-	r = (sensitivity.value - 1)/10;
-	M_DrawSlider (220, 72, r);
+		switch (o->type)
+		{
+			case option_onoff:
+				M_DrawCheckbox (188, y, o->onoff.cvar->value);
+				break;
 
-	M_Print (16, 80, "       CD Music Volume");
-	r = bgmvolume.value;
-	M_DrawSlider (220, 80, r);
-
-	M_Print (16, 88, "          Sound Volume");
-	r = volume.value;
-	M_DrawSlider (220, 88, r);
-
-	M_Print (16, 96,  "            Always Run");
-	M_DrawCheckbox (220, 96, cl_forwardspeed.value > 200);
-
-	M_Print (16, 104, "          Invert Mouse");
-	M_DrawCheckbox (220, 104, m_pitch.value < 0);
-
-	M_Print (16, 112, "            Lookspring");
-	M_DrawCheckbox (220, 112, lookspring.value);
-
-	M_Print (16, 120, "            Lookstrafe");
-	M_DrawCheckbox (220, 120, lookstrafe.value);
+			case option_slider:
+				v = o->slider.cvar->value;
+				min = o->slider.min;
+				max = o->slider.max;
+				r = o->slider.inverted
+					? (max - v) / (max - min)
+					: (v - min) / (max - min);
+				M_DrawSlider (188, y, r, v, o->slider.fmt);
+				break;
+		}
+	}
 
 	if (video_menu)
-		M_Print (16, 128, "         Video Options");
-
-#ifdef _WIN32
-	if (modestate == MS_WINDOWED)
 	{
-		M_Print (16, 136, "             Use Mouse");
-		M_DrawCheckbox (220, 136, _windowed_mouse.value);
+		M_Print (16 + 5 * CHAR_WIDTH, y, "Video Options");
 	}
-#endif
 
-	// cursor
-	M_DrawMenuCursor (200, 32 + options_cursor * 8);
+	M_DrawMenuCursor (168, starty + options_cursor * CHAR_HEIGHT);
+}
+
+static void M_Adjust (option_t *o, int dir)
+{
+	cvar_t *cvar;
+
+	switch (o->type)
+	{
+		case option_onoff:
+			S_LocalSound ("misc/menu3.wav");
+			cvar = o->onoff.cvar;
+			Cvar_SetValue (cvar->name, !cvar->value);
+			break;
+
+		case option_slider:
+			S_LocalSound ("misc/menu3.wav");
+			cvar = o->slider.cvar;
+			if (o->slider.inverted)
+			{
+				cvar->value -= dir * o->slider.step;
+			}
+			else
+			{
+				cvar->value += dir * o->slider.step;
+			}
+			cvar->value = Clampf(o->slider.min, o->slider.max, cvar->value);
+			Cvar_SetValue (cvar->name, cvar->value);
+			break;
+	}
 }
 
 void M_Options_Key (int k)
 {
+	option_t *o;
+
 	switch (k)
 	{
-	case K_ESCAPE:
-		M_Menu_Main_f ();
-		break;
-
-	case K_ENTER:
-		m_entersound = true;
-		switch (options_cursor)
-		{
-		case 0:
-			M_Menu_Keys_f ();
+		case K_ESCAPE:
+			M_Menu_Main_f ();
 			break;
-		case 1:
-			m_state = m_none;
-			Con_ToggleConsole_f ();
-			break;
-		case 2:
-			Cbuf_AddText ("exec default.cfg\n");
-			break;
-		case 12:
-			M_Menu_Video_f ();
-			break;
-		default:
-			M_AdjustSliders (1);
-			break;
-		}
-		return;
 
-	case K_UPARROW:
-		S_LocalSound ("misc/menu1.wav");
-		options_cursor--;
-		if (options_cursor < 0)
-			options_cursor = OPTIONS_ITEMS-1;
-		break;
+		case K_ENTER:
+			m_entersound = true;
+			if (options_cursor == Q_ARRLEN(options))
+			{
+				M_Menu_Video_f ();
+				return;
+			}
+			o = &options[options_cursor];
+			if (o->type == option_button)
+			{
+				switch (o->button.action)
+				{
+					case action_callback:
+						o->button.callback();
+						break;
+					case action_cmd:
+						Cbuf_AddText ((char *)o->button.cmd);
+						break;
+				}
+			}
+			else
+			{
+				M_Adjust(o, 1);
+			}
+			return;
 
-	case K_DOWNARROW:
-		S_LocalSound ("misc/menu1.wav");
-		options_cursor++;
-		if (options_cursor >= OPTIONS_ITEMS)
-			options_cursor = 0;
-		break;
+		case K_UPARROW:
+			S_LocalSound ("misc/menu1.wav");
+			options_cursor--;
+			if (options_cursor < 0)
+				options_cursor = Q_ARRLEN(options) - 1 + !!video_menu;
+			break;
 
-	case K_LEFTARROW:
-		M_AdjustSliders (-1);
-		break;
+		case K_DOWNARROW:
+			S_LocalSound ("misc/menu1.wav");
+			options_cursor++;
+			if (options_cursor >= (int)Q_ARRLEN(options) + !!video_menu)
+				options_cursor = 0;
+			break;
 
-	case K_RIGHTARROW:
-		M_AdjustSliders (1);
-		break;
+		case K_LEFTARROW:
+			o = &options[options_cursor];
+			M_Adjust(o, -1);
+			break;
+
+		case K_RIGHTARROW:
+			o = &options[options_cursor];
+			M_Adjust(o, 1);
+			break;
 	}
-
-	if (options_cursor == 12 && video_menu == NULL)
-	{
-		if (k == K_UPARROW)
-			options_cursor = 11;
-		else
-			options_cursor = 0;
-	}
-
-#ifdef _WIN32
-	if ((options_cursor == 13) && (modestate != MS_WINDOWED))
-	{
-		if (k == K_UPARROW)
-			options_cursor = 12;
-		else
-			options_cursor = 0;
-	}
-#endif
 }
 
 //=============================================================================

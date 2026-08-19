@@ -217,6 +217,7 @@ float CL_KeyState (kbutton_t *key)
 
 //==========================================================================
 
+cvar_t	cl_alwaysrun = {"cl_alwaysrun", "0", true};
 cvar_t	cl_upspeed = {"cl_upspeed","200"};
 cvar_t	cl_forwardspeed = {"cl_forwardspeed","200", true};
 cvar_t	cl_backspeed = {"cl_backspeed","200", true};
@@ -409,6 +410,28 @@ void CL_SendMove (usercmd_t *cmd)
 	}
 }
 
+void CL_UpdateSpeed (void)
+{
+	if (cl_alwaysrun.value)
+	{
+		Cvar_SetValue ("cl_forwardspeed", 400);
+		Cvar_SetValue ("cl_backspeed", 400);
+	}
+	else
+	{
+		Cvar_SetValue ("cl_forwardspeed", 200);
+		Cvar_SetValue ("cl_backspeed", 200);
+	}
+}
+
+void CL_UpdatePitch (void)
+{
+	if ((m_invert.value && m_pitch.value > 0) || (!m_invert.value && m_pitch.value < 0))
+	{
+		Cvar_SetValue ("m_pitch", -m_pitch.value);
+	}
+}
+
 /*
 ============
 CL_InitInput
@@ -451,7 +474,6 @@ void CL_InitInput (void)
 	Cmd_AddCommand ("-klook", IN_KLookUp);
 	Cmd_AddCommand ("+mlook", IN_MLookDown);
 	Cmd_AddCommand ("-mlook", IN_MLookUp);
-
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :
