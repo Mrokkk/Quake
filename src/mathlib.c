@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void Sys_Error (char *error, ...);
 
 vec3_t vec3_origin = {0,0,0};
-int nanmask = 255<<23;
+int nanmask = 255 << 23;
 
 /*-----------------------------------------------------------------*/
 
@@ -88,7 +88,6 @@ void PerpendicularVector( vec3_t dst, const vec3_t src )
 #ifdef _WIN32
 #pragma optimize( "", off )
 #endif
-
 
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees )
 {
@@ -201,7 +200,7 @@ int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, mplane_t *p)
 		return 3;
 	}
 #endif
-	
+
 // general case
 	switch (p->signbits)
 	{
@@ -288,7 +287,7 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
 	float		angle;
 	float		sr, sp, sy, cr, cp, cy;
-	
+
 	angle = angles[YAW] * (M_PI*2 / 360);
 	sy = sin(angle);
 	cy = cos(angle);
@@ -313,11 +312,11 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 int VectorCompare (vec3_t v1, vec3_t v2)
 {
 	int		i;
-	
+
 	for (i=0 ; i<3 ; i++)
 		if (v1[i] != v2[i])
 			return 0;
-			
+
 	return 1;
 }
 
@@ -329,32 +328,6 @@ void VectorMA (vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
 }
 
 
-vec_t _DotProduct (vec3_t v1, vec3_t v2)
-{
-	return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
-}
-
-void _VectorSubtract (vec3_t veca, vec3_t vecb, vec3_t out)
-{
-	out[0] = veca[0]-vecb[0];
-	out[1] = veca[1]-vecb[1];
-	out[2] = veca[2]-vecb[2];
-}
-
-void _VectorAdd (vec3_t veca, vec3_t vecb, vec3_t out)
-{
-	out[0] = veca[0]+vecb[0];
-	out[1] = veca[1]+vecb[1];
-	out[2] = veca[2]+vecb[2];
-}
-
-void _VectorCopy (vec3_t in, vec3_t out)
-{
-	out[0] = in[0];
-	out[1] = in[1];
-	out[2] = in[2];
-}
-
 void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
 {
 	cross[0] = v1[1]*v2[2] - v1[2]*v2[1];
@@ -362,13 +335,11 @@ void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
 	cross[2] = v1[0]*v2[1] - v1[1]*v2[0];
 }
 
-double sqrt(double x);
-
 vec_t Length(vec3_t v)
 {
 	int		i;
 	float	length;
-	
+
 	length = 0;
 	for (i=0 ; i< 3 ; i++)
 		length += v[i]*v[i];
@@ -391,9 +362,8 @@ float VectorNormalize (vec3_t v)
 		v[1] *= ilength;
 		v[2] *= ilength;
 	}
-		
-	return length;
 
+	return length;
 }
 
 void VectorInverse (vec3_t v)
@@ -409,16 +379,6 @@ void VectorScale (vec3_t in, vec_t scale, vec3_t out)
 	out[1] = in[1]*scale;
 	out[2] = in[2]*scale;
 }
-
-
-int Q_log2(int val)
-{
-	int answer=0;
-	while (val>>=1)
-		answer++;
-	return answer;
-}
-
 
 /*
 ================
@@ -446,7 +406,6 @@ void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
 	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] +
 				in1[2][2] * in2[2][2];
 }
-
 
 /*
 ================
@@ -480,7 +439,6 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
 	out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] +
 				in1[2][2] * in2[2][3] + in1[2][3];
 }
-
 
 /*
 ===================
@@ -533,7 +491,6 @@ void FloorDivMod (double numer, double denom, int *quotient,
 	*rem = r;
 }
 
-
 /*
 ===================
 GreatestCommonDivisor
@@ -553,26 +510,6 @@ int GreatestCommonDivisor (int i1, int i2)
 			return (i2);
 		return GreatestCommonDivisor (i1, i2 % i1);
 	}
-}
-
-
-// TODO: move to nonintel.c
-
-/*
-===================
-Invert24To16
-
-Inverts an 8.24 value to a 16.16 value
-====================
-*/
-
-fixed16_t Invert24To16(fixed16_t val)
-{
-	if (val < 256)
-		return (0xFFFFFFFF);
-
-	return (fixed16_t)
-			(((double)0x10000 * (double)0x1000000 / (double)val) + 0.5);
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :
