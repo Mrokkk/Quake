@@ -1086,33 +1086,59 @@ enum
 	action_cmd,
 };
 
-typedef struct option_s
+enum
 {
-	int						type;
-	unsigned				namelen;
-	const char				*name;
+	slider_dynamic_range	= (1 << 0),
+	slider_inverted			= (1 << 1),
+};
+
+static void M_ReadScale (float *min, float *max, float *step)
+{
+	*min = 1;
+	*max = scr_maxscaling;
+	*step = 1;
+}
+
+typedef struct
+{
+	cvar_t *cvar;
+} onoff_t;
+
+typedef struct
+{
+	cvar_t			*cvar;
+	const char		*fmt;
+	int				flags;
 	union
 	{
 		struct
 		{
-			cvar_t			*cvar;
-		} onoff;
-		struct
-		{
-			cvar_t			*cvar;
-			const char		*fmt;
-			float			min, max, step;
-			qboolean		inverted;
-		} slider;
-		struct
-		{
-			int				action;
-			union
-			{
-				void		(*callback)(void);
-				const char	*cmd;
-			};
-		} button;
+			float	min, max, step;
+		};
+		void		(*read)(float *min, float *max, float *step);
+	};
+} slider_t;
+
+typedef struct
+{
+	int				action;
+	union
+	{
+		void		(*callback)(void);
+		const char	*cmd;
+	};
+} button_t;
+
+typedef struct option_s
+{
+	int				type;
+	unsigned		namelen;
+	const char		*name;
+	union
+	{
+		onoff_t		onoff;
+		slider_t	slider;
+		button_t	button;
 	};
 } option_t;
 
@@ -1146,14 +1172,24 @@ static option_t options[] = {
 	},
 	{
 		.type = option_slider,
+		.name = "UI Scale",
+		.slider = {
+			.cvar = &_scr_scaling,
+			.fmt = "%0.0f",
+			.flags = slider_dynamic_range,
+			.read = &M_ReadScale
+		},
+	},
+	{
+		.type = option_slider,
 		.name = "Brightness",
 		.slider = {
 			.cvar = &v_gamma,
 			.fmt = "%0.2f",
+			.flags = slider_inverted,
 			.min = 0.5,
 			.max = 1.0,
 			.step = 0.05,
-			.inverted = true,
 		},
 	},
 	{
@@ -1252,7 +1288,7 @@ void M_Options_Draw (void)
 {
 	size_t		i;
 	int			y;
-	float		r, min, max, v;
+	float		r, min, max, step, v;
 	option_t	*o;
 	const int	starty = 32;
 
@@ -1275,9 +1311,16 @@ void M_Options_Draw (void)
 
 			case option_slider:
 				v = o->slider.cvar->value;
-				min = o->slider.min;
-				max = o->slider.max;
-				r = o->slider.inverted
+				if (o->slider.flags & slider_dynamic_range)
+				{
+					o->slider.read(&min, &max, &step);
+				}
+				else
+				{
+					min = o->slider.min;
+					max = o->slider.max;
+				}
+				r = o->slider.flags & slider_inverted
 					? (max - v) / (max - min)
 					: (v - min) / (max - min);
 				M_DrawSlider (188, y, r, v, o->slider.fmt);
@@ -1296,6 +1339,7 @@ void M_Options_Draw (void)
 static void M_Adjust (option_t *o, int dir)
 {
 	cvar_t *cvar;
+	float min, max, step, v;
 
 	switch (o->type)
 	{
@@ -1307,16 +1351,27 @@ static void M_Adjust (option_t *o, int dir)
 
 		case option_slider:
 			S_LocalSound ("misc/menu3.wav");
-			cvar = o->slider.cvar;
-			if (o->slider.inverted)
+			if (o->slider.flags & slider_dynamic_range)
 			{
-				cvar->value -= dir * o->slider.step;
+				o->slider.read(&min, &max, &step);
 			}
 			else
 			{
-				cvar->value += dir * o->slider.step;
+				min = o->slider.min;
+				max = o->slider.max;
+				step = o->slider.step;
 			}
-			cvar->value = Clampf(o->slider.min, o->slider.max, cvar->value);
+			cvar = o->slider.cvar;
+			v = cvar->value;
+			if (o->slider.flags & slider_inverted)
+			{
+				v -= dir * step;
+			}
+			else
+			{
+				v += dir * step;
+			}
+			cvar->value = Clampf(min, max, v);
 			Cvar_SetValue (cvar->name, cvar->value);
 			break;
 	}

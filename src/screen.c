@@ -39,6 +39,7 @@ cvar_t		scr_showturtle = {"showturtle","0"};
 cvar_t		scr_showpause = {"showpause","1"};
 cvar_t		scr_printspeed = {"scr_printspeed","8"};
 cvar_t		scr_showfps = {"scr_showfps", "0", true};
+cvar_t		_scr_scaling = {"scr_scaling", "5", true};
 
 qboolean	scr_initialized;		// ready to draw
 
@@ -47,6 +48,7 @@ qpic_t		*scr_net;
 qpic_t		*scr_turtle;
 
 int			scr_fullupdate;
+float		scr_maxscaling;
 int			scr_scaling, scr_xoff, scr_yoff;
 
 int			clearconsole;
@@ -231,15 +233,19 @@ Internal use only
 static void SCR_CalcRefdef (void)
 {
 	vrect_t		vrect;
-	float		size, scale, scalex, scaley;
+	float		size, scalex, scaley;
 
 	scr_fullupdate = 0;		// force a background redraw
 	vid.recalc_refdef = 0;
 
 	scalex = (float)(vid.width) / SCREEN_WIDTH;
 	scaley = (float)(vid.height) / SCREEN_HEIGHT;
-	scale = Q_MIN(scalex, scaley);
-	scr_scaling = (int)scale;
+	scr_maxscaling = (int)Q_MIN(scalex, scaley);
+
+	scr_scaling = Q_MIN(_scr_scaling.value, scr_maxscaling);
+
+	Cvar_SetValue("scr_scaling", scr_scaling);
+
 	scr_xoff = (vid.width - scr_scaling * SCREEN_WIDTH) / 2;
 	scr_yoff = (vid.height - scr_scaling * SCREEN_HEIGHT) / 2;
 
@@ -340,6 +346,8 @@ void SCR_Init (void)
 	Cvar_RegisterVariable (&scr_centertime);
 	Cvar_RegisterVariable (&scr_printspeed);
 	Cvar_RegisterVariable (&scr_showfps);
+	Cvar_RegisterVariable (&_scr_scaling);
+	_scr_scaling.callback = &SCR_CalcRefdef;
 
 //
 // register our commands
