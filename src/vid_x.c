@@ -1377,7 +1377,7 @@ void IN_Commands(void)
 
 void IN_Move(usercmd_t *cmd)
 {
-	if (!mouse_avail)
+	if (!mouse_avail || cl.paused || key_dest != key_game)
 		return;
 
 	if (m_filter.value)
