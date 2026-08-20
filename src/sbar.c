@@ -1171,7 +1171,10 @@ void Sbar_MiniDeathmatchOverlay (void)
 	scoreboard_t	*s;
 	int				numlines;
 
-	if (vid.width < 512 || !sb_lines)
+	x = SCREEN_WIDTH - vid.width / scr_scaling;
+
+	// let more than 20 characters be truncated
+	if (x > -20 * CHAR_WIDTH)
 		return;
 
 	scr_copyeverything = 1;
@@ -1181,8 +1184,8 @@ void Sbar_MiniDeathmatchOverlay (void)
 	Sbar_SortFrags ();
 
 	// draw the text
-	y = vid.height - sb_lines;
-	numlines = sb_lines/8;
+	y = - sb_lines;
+	numlines = sb_lines / CHAR_HEIGHT;
 	if (numlines < 3)
 		return;
 
@@ -1192,17 +1195,13 @@ void Sbar_MiniDeathmatchOverlay (void)
 			break;
 
     if (i == scoreboardlines) // we're not there
-            i = 0;
+		i = 0;
     else // figure out start
-            i = i - numlines/2;
+		i = i - numlines / 2;
 
-    if (i > scoreboardlines - numlines)
-            i = scoreboardlines - numlines;
-    if (i < 0)
-            i = 0;
+	i = Clampi(0, scoreboardlines - numlines, i);
 
-	x = 324;
-	for (/* */; i < scoreboardlines && y < (int)vid.height - 8 ; i++)
+	for (; i < scoreboardlines && y < 0; i++)
 	{
 		k = fragsort[i];
 		s = &cl.scores[k];
@@ -1211,47 +1210,30 @@ void Sbar_MiniDeathmatchOverlay (void)
 
 		// draw background
 		top = s->colors & 0xf0;
-		bottom = (s->colors & 15)<<4;
+		bottom = (s->colors & 15) << 4;
 		top = Sbar_ColorForMap (top);
 		bottom = Sbar_ColorForMap (bottom);
 
-		Draw_Fill_Align ( x, y+1, 40, 3, CENTER, CENTER, top);
-		Draw_Fill_Align ( x, y+4, 40, 4, CENTER, CENTER, bottom);
+		Draw_Fill_Align (x, y + 1, 40, 3, top, RIGHT, BOTTOM);
+		Draw_Fill_Align (x, y + 4, 40, 4, bottom, RIGHT, BOTTOM);
 
 		// draw number
 		f = s->frags;
 		sprintf (num, "%3i",f);
 
-		Draw_Character_Center ( x+8 , y, num[0]);
-		Draw_Character_Center ( x+16 , y, num[1]);
-		Draw_Character_Center ( x+24 , y, num[2]);
+		Draw_Character_Align (x + 8,  y, RIGHT, BOTTOM, num[0]);
+		Draw_Character_Align (x + 16, y, RIGHT, BOTTOM, num[1]);
+		Draw_Character_Align (x + 24, y, RIGHT, BOTTOM, num[2]);
 
+		// brackets
 		if (k == cl.viewentity - 1)
 		{
-			Draw_Character_Center ( x, y, 16);
-			Draw_Character_Center ( x + 32, y, 17);
+			Draw_Character_Align (x, y, RIGHT, BOTTOM, 16);
+			Draw_Character_Align (x + 32, y, RIGHT, BOTTOM, 17);
 		}
 
-#if 0
-{
-	int				total;
-	int				n, minutes, tens, units;
-
-	// draw time
-		total = cl.completed_time - s->entertime;
-		minutes = (int)total/60;
-		n = total - minutes*60;
-		tens = n/10;
-		units = n%10;
-
-		sprintf (num, "%3i:%i%i", minutes, tens, units);
-
-		Draw_String ( x+48 , y, num);
-}
-#endif
-
 		// draw name
-		Draw_String_Align (x+48, y, CENTER, CENTER, s->name);
+		Draw_String_Align (x + 48, y, RIGHT, BOTTOM, s->name);
 
 		y += CHAR_HEIGHT;
 	}
