@@ -1316,14 +1316,16 @@ void VID_DitherOff(void)
 
 void Sys_SendKeyEvents(void)
 {
+	int tail;
 	// get events from x server
 	if (x_disp)
 	{
 		while (XPending(x_disp)) GetEvent();
 		while (keyq_head != keyq_tail)
 		{
-			Key_Event(keyq[keyq_tail].key, keyq[keyq_tail].down);
+			tail = keyq_tail;
 			keyq_tail = (keyq_tail + 1) & (Q_ARRLEN(keyq) - 1);
+			Key_Event(keyq[tail].key, keyq[tail].down);
 		}
 	}
 }
