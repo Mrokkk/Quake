@@ -1056,7 +1056,7 @@ Immediately exits out if an alternate game was attempted to be started without
 being registered.
 ================
 */
-void COM_CheckRegistered (void)
+static void COM_CheckRegistered (void)
 {
 	int             h;
 	unsigned short  check[128];
@@ -1086,12 +1086,10 @@ void COM_CheckRegistered (void)
 	Cvar_Set ("cmdline", com_cmdline);
 	Cvar_Set ("registered", "1");
 	static_registered = 1;
-	Con_Printf ("Playing registered version.\n");
+	Con_DPrintf ("Playing registered version.\n");
 }
 
-
 void COM_Path_f (void);
-
 
 /*
 ================
@@ -1209,19 +1207,18 @@ va
 
 does a varargs printf into a temp buffer, so I don't need to have
 varargs versions of all text functions.
-FIXME: make this buffer size safe someday
 ============
 */
-char    *va(char *format, ...)
+char *va(const char *format, ...)
 {
-	va_list         argptr;
-	static char             string[1024];
+	va_list			argptr;
+	static char		string[1024];
 	
 	va_start (argptr, format);
-	vsprintf (string, format,argptr);
+	Q_vsnprintf (string, sizeof(string), format, argptr);
 	va_end (argptr);
 
-	return string;  
+	return string;
 }
 
 
@@ -1301,7 +1298,7 @@ typedef struct searchpath_s
 	struct searchpath_s *next;
 } searchpath_t;
 
-searchpath_t    *com_searchpaths;
+searchpath_t *com_searchpaths;
 
 /*
 ============
@@ -1427,11 +1424,11 @@ static int COM_FindFile (char *filename, int *handle, FILE **file)
 	int				i, res;
 	int				findtime, cachetime;
 
-	if (!filename)
+	if (Q_UNLIKELY(!filename))
 		Sys_Error_f ("NULL filename\n");
-	if (file && handle)
+	if (Q_UNLIKELY(file && handle))
 		Sys_Error_f ("both handle and file set\n");
-	if (!file && !handle)
+	if (Q_UNLIKELY(!file && !handle))
 		Sys_Error_f ("neither handle or file set\n");
 
 	//
@@ -1529,7 +1526,7 @@ static int COM_FindFile (char *filename, int *handle, FILE **file)
 				strcpy (netpath, cachepath);
 			}
 
-			Sys_Printf_f ("%s\n", netpath);
+			Sys_DPrintf_f ("%s\n", netpath);
 
 			com_filesize = Sys_FileOpenRead (netpath, &i);
 
@@ -1784,8 +1781,8 @@ pack_t *COM_LoadPackFile (char *packfile)
 	pack->handle = packhandle;
 	pack->numfiles = numpackfiles;
 	pack->files = newfiles;
-	
-	Con_Printf ("Added packfile %s (%i files)\n", packfile, numpackfiles);
+
+	Sys_DPrintf_f ("Added packfile %s (%i files)\n", packfile, numpackfiles);
 
 	if (developer.value)
 	{
@@ -1828,7 +1825,7 @@ void COM_AddGameDirectory (char *dir)
 	//
 	for (i = 0 ;; i++)
 	{
-		sprintf (pakfile, "%s/pak%i.pak", dir, i);
+		Q_snprintf (pakfile, sizeof(pakfile), "%s/pak%i.pak", dir, i);
 		pak = COM_LoadPackFile (pakfile);
 		if (!pak)
 			break;
@@ -1850,9 +1847,9 @@ COM_InitFilesystem
 */
 void COM_InitFilesystem (void)
 {
-	int             i, j;
-	char    basedir[MAX_OSPATH];
-	searchpath_t    *search;
+	int				i, j;
+	char			basedir[MAX_OSPATH];
+	searchpath_t	*search;
 
 	//
 	// -basedir <path>
@@ -1860,16 +1857,20 @@ void COM_InitFilesystem (void)
 	//
 	i = COM_CheckParm ("-basedir");
 	if (i && i < com_argc-1)
-		strcpy (basedir, com_argv[i+1]);
+	{
+		Q_strlcpy (basedir, com_argv[i + 1], sizeof(basedir));
+	}
 	else
-		strcpy (basedir, host_parms.basedir);
+	{
+		Q_strlcpy (basedir, host_parms.basedir, sizeof(basedir));
+	}
 
 	j = strlen (basedir);
 
 	if (j > 0)
 	{
-		if ((basedir[j-1] == '\\') || (basedir[j-1] == '/'))
-			basedir[j-1] = 0;
+		if ((basedir[j - 1] == '\\') || (basedir[j - 1] == '/'))
+			basedir[j - 1] = 0;
 	}
 
 	//
@@ -1878,37 +1879,41 @@ void COM_InitFilesystem (void)
 	// -cachedir - will disable caching.
 	//
 	i = COM_CheckParm ("-cachedir");
-	if (i && i < com_argc-1)
+	if (i && i < com_argc - 1)
 	{
-		if (com_argv[i+1][0] == '-')
+		if (com_argv[i + 1][0] == '-')
 			com_cachedir[0] = 0;
 		else
-			strcpy (com_cachedir, com_argv[i+1]);
+			Q_strlcpy (com_cachedir, com_argv[i + 1], sizeof(com_cachedir));
 	}
 	else if (host_parms.cachedir)
-		strcpy (com_cachedir, host_parms.cachedir);
+	{
+		Q_strlcpy (com_cachedir, host_parms.cachedir, sizeof(com_cachedir));
+	}
 	else
+	{
 		com_cachedir[0] = 0;
+	}
 
 	//
 	// start up with GAMENAME by default (id1)
 	//
-	COM_AddGameDirectory (va("%s/"GAMENAME, basedir) );
+	COM_AddGameDirectory (va("%s/"GAMENAME, basedir));
 
 	if (COM_CheckParm ("-rogue"))
-		COM_AddGameDirectory (va("%s/rogue", basedir) );
+		COM_AddGameDirectory (va("%s/rogue", basedir));
 	if (COM_CheckParm ("-hipnotic"))
-		COM_AddGameDirectory (va("%s/hipnotic", basedir) );
+		COM_AddGameDirectory (va("%s/hipnotic", basedir));
 
 	//
 	// -game <gamedir>
 	// Adds basedir/gamedir as an override game
 	//
 	i = COM_CheckParm ("-game");
-	if (i && i < com_argc-1)
+	if (i && i < com_argc - 1)
 	{
 		com_modified = true;
-		COM_AddGameDirectory (va("%s/%s", basedir, com_argv[i+1]));
+		COM_AddGameDirectory (va("%s/%s", basedir, com_argv[i + 1]));
 	}
 
 	//
@@ -1941,6 +1946,20 @@ void COM_InitFilesystem (void)
 
 	if (COM_CheckParm ("-proghack"))
 		proghack = true;
+
+	Sys_Printf_f("Search paths:\n");
+
+	for (search = com_searchpaths; search; search = search->next)
+	{
+		if (search->pack)
+		{
+			Sys_Printf("  Pack:  %s (%u files)\n", search->pack->filename, search->pack->numfiles);
+		}
+		else
+		{
+			Sys_Printf("  Dir:   %s\n", search->filename);
+		}
+	}
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

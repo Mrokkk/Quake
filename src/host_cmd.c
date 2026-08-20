@@ -60,7 +60,7 @@ void Host_Status_f (void)
 	int			minutes;
 	int			hours = 0;
 	int			j;
-	void		(*print) (char *fmt, ...);
+	void		(*print) (const char *fmt, ...);
 	
 	if (cmd_source == src_command)
 	{
@@ -782,7 +782,7 @@ int LoadGamestate(char *level, char *startspot)
 	int		version;
 //	float	spawn_parms[NUM_SPAWN_PARMS];
 
-	sprintf (name, "%s/%s.gip", com_gamedir, level);
+	Q_snprintf (name, sizeof(name), "%s/%s.gip", com_gamedir, level);
 	
 	Con_Printf ("Loading game from %s...\n", name);
 	f = fopen (name, "r");
@@ -1054,9 +1054,9 @@ void Host_Say(qboolean teamonly)
 
 // turn on color set 1
 	if (!fromServer)
-		sprintf (text, "%c%s: ", 1, save->name);
+		Q_snprintf (text, sizeof(text), "%c%s: ", 1, save->name);
 	else
-		sprintf (text, "%c<%s> ", 1, hostname.string);
+		Q_snprintf (text, sizeof(text), "%c<%s> ", 1, hostname.string);
 
 	j = sizeof(text) - 2 - Q_strlen(text);  // -2 for /n and null terminator
 	if (Q_strlen(p) > j)

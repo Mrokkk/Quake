@@ -44,15 +44,18 @@ void Con_DrawCharacter (int cx, int line, int num);
 void Con_CheckResize (void);
 void Con_Init (void);
 void Con_DrawConsole (int lines, qboolean drawinput);
-void Con_Print (char *txt);
-void Con_Printf (char *fmt, ...) Q_PRINTF_FORMAT(1);
-void Con_DPrintf (char *fmt, ...) Q_PRINTF_FORMAT(1);
-void Con_SafePrintf (char *fmt, ...) Q_PRINTF_FORMAT(1);
+void Con_Print (const char *txt);
+void Con_Printf (const char *fmt, ...) Q_PRINTF_FORMAT(1);
+void Con_DPrintf (const char *fmt, ...) Q_PRINTF_FORMAT(1);
+void Con_SafePrintf (const char *fmt, ...) Q_PRINTF_FORMAT(1);
 void Con_Clear_f (void);
 void Con_DrawNotify (void);
 void Con_ClearNotify (void);
 void Con_ToggleConsole_f (void);
 const char *Con_QuakeBar (size_t len);
+
+#define Con_Printf_f(fmt, ...) Con_Printf("%s: " fmt, __func__, ##__VA_ARGS__)
+#define Con_DPrintf_f(fmt, ...) Con_DPrintf("%s: " fmt, __func__, ##__VA_ARGS__)
 
 void Con_NotifyBox (char *text);	// during startup for sound / cd warnings
 

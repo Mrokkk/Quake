@@ -19,7 +19,6 @@
 #define BASEDIR "."
 
 qboolean isDedicated;
-cvar_t  sys_linerefresh = {"sys_linerefresh","0"};// set for entity display
 
 static int nostdout = 0;
 
@@ -42,7 +41,37 @@ static const char *colors[] = {
 
 static void Sys_Print (const char *s)
 {
+	for (; *s; s++)
+	{
+		switch (*s)
+		{
+			case Q_COLOR_ESCAPE:
+				fputs(colors[ColorIndex(*++s)], stdout);
+				break;
+
+			default:
+				putc(*s, stdout);
+		}
+	}
+}
+
+static void Sys_PrintConsolePrefix (void)
+{
+	fputs(colors[ColorIndex(COLOR_BLUE)], stdout);
+	fputs("Console: ", stdout);
+	fputs(colors[ColorIndex(COLOR_RESET)], stdout);
+}
+
+void Sys_Print_Console (const char *s)
+{
 	qboolean con_color = false;
+	static qboolean prefix_needed = true;
+
+	if (prefix_needed)
+	{
+		Sys_PrintConsolePrefix();
+		prefix_needed = false;
+	}
 
 	for (; *s; s++)
 	{
@@ -50,7 +79,7 @@ static void Sys_Print (const char *s)
 		{
 			case CON_COLOR_1:
 			case CON_COLOR_2:
-				fputs(colors[3], stdout);
+				fputs(colors[ColorIndex(COLOR_YELLOW)], stdout);
 				con_color = true;
 				break;
 
@@ -66,8 +95,17 @@ static void Sys_Print (const char *s)
 				putc('>', stdout);
 				break;
 
-			case Q_COLOR_ESCAPE:
-				fputs(colors[ColorIndex(*++s)], stdout);
+			case '\n':
+				if (*(s + 1) != '\0')
+				{
+					putc('\n', stdout);
+					Sys_PrintConsolePrefix();
+				}
+				else
+				{
+					putc('\n', stdout);
+					prefix_needed = true;
+				}
 				break;
 
 			default:
@@ -135,8 +173,8 @@ Q_NORETURN void Sys_Error (char *error, ...)
 	// change stdin to non blocking
 	fcntl (0, F_SETFL, fcntl (0, F_GETFL, 0) & ~FNDELAY);
 
-	va_start (argptr,error);
-	vsprintf (string,error,argptr);
+	va_start (argptr, error);
+	Q_vsnprintf (string, sizeof(string), error, argptr);
 	va_end (argptr);
 	fprintf(stderr, "Error: %s\n", string);
 	Sys_StacktraceDump ();
@@ -149,8 +187,8 @@ void Sys_Warn (char *warning, ...)
 	va_list		argptr;
 	char		string[1024];
 
-	va_start (argptr,warning);
-	vsprintf (string,warning,argptr);
+	va_start (argptr, warning);
+	Q_vsnprintf (string, sizeof(string), warning, argptr);
 	va_end (argptr);
 	fprintf(stderr, "Warning: %s", string);
 }
@@ -255,14 +293,6 @@ double Sys_FloatTime (void)
 	}
 
 	return (double)(ns - base) / NSEC_IN_SEC;
-}
-
-// =======================================================================
-// Sleeps for microseconds
-// =======================================================================
-
-void Sys_LineRefresh(void)
-{
 }
 
 char *Sys_ConsoleInput(void)
@@ -524,14 +554,14 @@ Q_NORETURN int main (int c, char **v)
 	else
 	{
 		fcntl(0, F_SETFL, fcntl (0, F_GETFL, 0) | FNDELAY);
-		printf ("Linux Quake -- Version %0.3f\n", LINUX_VERSION);
+		Sys_Printf ("Linux Quake -- Version %0.3f\n", LINUX_VERSION);
 	}
 
 	j = COM_CheckParm("-mem");
 
 	parms.memsize = j
 		? (int)(Q_atof(com_argv[j + 1]) * 1024 * 1024)
-		: 384*1024*1024;
+		: 384 * 1024 * 1024;
 	parms.membase = malloc (parms.memsize);
 
 	parms.basedir = BASEDIR;
@@ -568,10 +598,6 @@ Q_NORETURN int main (int c, char **v)
 			oldtime += time;
 
 		Host_Frame (time);
-
-		// graphic debugging aids
-		if (sys_linerefresh.value)
-			Sys_LineRefresh ();
 	}
 }
 

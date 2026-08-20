@@ -254,13 +254,13 @@ PR_RunError
 Aborts the currently executing function
 ============
 */
-void PR_RunError (char *error, ...)
+void PR_RunError (const char *error, ...)
 {
 	va_list		argptr;
 	char		string[1024];
 
-	va_start (argptr,error);
-	vsprintf (string,error,argptr);
+	va_start (argptr, error);
+	Q_vsnprintf (string, sizeof(string), error, argptr);
 	va_end (argptr);
 
 	PR_PrintStatement (pr_statements + pr_xstatement);

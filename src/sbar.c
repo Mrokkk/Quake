@@ -361,7 +361,7 @@ void Sbar_DrawNum (int x, int y, int num, int digits, int color)
 
 int		fragsort[MAX_SCOREBOARD];
 
-char	scoreboardtext[MAX_SCOREBOARD][20];
+char	scoreboardtext[MAX_SCOREBOARD][64];
 int		scoreboardtop[MAX_SCOREBOARD];
 int		scoreboardbottom[MAX_SCOREBOARD];
 int		scoreboardcount[MAX_SCOREBOARD];
@@ -422,7 +422,7 @@ void Sbar_UpdateScoreboard (void)
 	{
 		k = fragsort[i];
 		s = &cl.scores[k];
-		sprintf (&scoreboardtext[i][1], "%3i %s", s->frags, s->name);
+		Q_snprintf (&scoreboardtext[i][1], sizeof(scoreboardtext[i]) - 1, "%3i %s", s->frags, s->name);
 
 		top = s->colors & 0xf0;
 		bottom = (s->colors & 15) <<4;

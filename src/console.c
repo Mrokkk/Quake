@@ -221,7 +221,7 @@ void Con_Init (void)
 	{
 		if (strlen (com_gamedir) < (MAXGAMEDIRLEN - strlen (t2)))
 		{
-			sprintf (temp, "%s%s", com_gamedir, t2);
+			Q_snprintf (temp, sizeof(temp), "%s%s", com_gamedir, t2);
 			unlink (temp);
 		}
 	}
@@ -231,7 +231,7 @@ void Con_Init (void)
 	con_linewidth = -1;
 	Con_CheckResize ();
 	
-	Con_Printf ("Console initialized.\n");
+	Con_DPrintf ("Console initialized.\n");
 
 //
 // register our commands
@@ -268,7 +268,7 @@ All console printing must go through this in order to be logged to disk
 If no console is visible, the notify window will pop up.
 ================
 */
-void Con_Print (char *txt)
+void Con_Print (const char *txt)
 {
 	int		y;
 	int		c, l;
@@ -344,7 +344,6 @@ void Con_Print (char *txt)
 	}
 }
 
-
 /*
 ================
 Con_DebugLog
@@ -355,15 +354,18 @@ void Con_DebugLog(char *file, char *fmt, ...)
     va_list argptr; 
     static char data[1024];
     int fd;
-    
+
     va_start(argptr, fmt);
-    vsprintf(data, fmt, argptr);
+    Q_vsnprintf(data, sizeof(data), fmt, argptr);
     va_end(argptr);
     fd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
     write(fd, data, strlen(data));
     close(fd);
 }
 
+void Sys_Print_Console (const char *s);
+
+#define	MAXPRINTMSG	4096
 
 /*
 ================
@@ -372,8 +374,7 @@ Con_Printf
 Handles cursor positioning, line wrapping, etc
 ================
 */
-#define	MAXPRINTMSG	4096
-void Con_Printf (char *fmt, ...)
+void Con_Printf (const char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
@@ -383,8 +384,7 @@ void Con_Printf (char *fmt, ...)
 	Q_vsnprintf (msg, sizeof(msg), fmt, argptr);
 	va_end (argptr);
 	
-	// also echo to debugging console
-	Sys_Printf ("%s", msg);	// also echo to debugging console
+	Sys_Print_Console (msg);	// also echo to debugging console
 
 	// log all messages to file
 	if (con_debuglog)
@@ -420,7 +420,7 @@ Con_DPrintf
 A Con_Printf that only shows up if the "developer" cvar is set
 ================
 */
-void Con_DPrintf (char *fmt, ...)
+void Con_DPrintf (const char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
@@ -443,14 +443,14 @@ Con_SafePrintf
 Okay to call even when the screen can't be updated
 ==================
 */
-void Con_SafePrintf (char *fmt, ...)
+void Con_SafePrintf (const char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[1024];
 	int			temp;
 		
-	va_start (argptr,fmt);
-	vsprintf (msg,fmt,argptr);
+	va_start (argptr, fmt);
+	Q_vsnprintf (msg, sizeof(msg), fmt, argptr);
 	va_end (argptr);
 
 	temp = scr_disabled_for_loading;

@@ -212,7 +212,7 @@ void COM_StripExtension (char *in, char *out);
 void COM_FileBase (char *in, char *out);
 void COM_DefaultExtension (char *path, char *extension);
 
-char *va(char *format, ...) Q_PRINTF_FORMAT(1);
+char *va(const char *format, ...) Q_PRINTF_FORMAT(1);
 // does a varargs printf into a temp buffer
 
 

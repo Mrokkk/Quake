@@ -87,15 +87,15 @@ cvar_t	temp1 = {"temp1","0"};
 Host_EndGame
 ================
 */
-void Host_EndGame (char *message, ...)
+void Host_EndGame (const char *message, ...)
 {
 	va_list		argptr;
 	char		string[1024];
 	
-	va_start (argptr,message);
-	vsprintf (string,message,argptr);
+	va_start (argptr, message);
+	Q_vsnprintf (string, sizeof(string), message, argptr);
 	va_end (argptr);
-	Con_DPrintf ("Host_EndGame: %s\n",string);
+	Con_DPrintf_f ("%s\n", string);
 	
 	if (sv.active)
 		Host_ShutdownServer (false);
@@ -118,7 +118,7 @@ Host_Error
 This shuts down both the client and server
 ================
 */
-void Host_Error (char *error, ...)
+void Host_Error (const char *error, ...)
 {
 	va_list		argptr;
 	char		string[1024];
@@ -130,8 +130,8 @@ void Host_Error (char *error, ...)
 	
 	SCR_EndLoadingPlaque ();		// reenable screen updates
 
-	va_start (argptr,error);
-	vsprintf (string,error,argptr);
+	va_start (argptr, error);
+	Q_vsnprintf (string, sizeof(string), error, argptr);
 	va_end (argptr);
 	Con_Printf ("Host_Error: %s\n",string);
 	
@@ -274,13 +274,13 @@ Sends text across to be displayed
 FIXME: make this just a stuffed echo?
 =================
 */
-void SV_ClientPrintf (char *fmt, ...)
+void SV_ClientPrintf (const char *fmt, ...)
 {
 	va_list		argptr;
 	char		string[1024];
 	
-	va_start (argptr,fmt);
-	vsprintf (string, fmt,argptr);
+	va_start (argptr, fmt);
+	Q_vsnprintf (string, sizeof(string), fmt, argptr);
 	va_end (argptr);
 	
 	MSG_WriteByte (&host_client->message, svc_print);
@@ -294,14 +294,14 @@ SV_BroadcastPrintf
 Sends text to all active clients
 =================
 */
-void SV_BroadcastPrintf (char *fmt, ...)
+void SV_BroadcastPrintf (const char *fmt, ...)
 {
 	va_list		argptr;
 	char		string[1024];
 	int			i;
 	
-	va_start (argptr,fmt);
-	vsprintf (string, fmt,argptr);
+	va_start (argptr, fmt);
+	Q_vsnprintf (string, sizeof(string), fmt, argptr);
 	va_end (argptr);
 	
 	for (i=0 ; i<svs.maxclients ; i++)
@@ -319,13 +319,13 @@ Host_ClientCommands
 Send text over to the client to be executed
 =================
 */
-void Host_ClientCommands (char *fmt, ...)
+void Host_ClientCommands (const char *fmt, ...)
 {
 	va_list		argptr;
 	char		string[1024];
 	
-	va_start (argptr,fmt);
-	vsprintf (string, fmt,argptr);
+	va_start (argptr, fmt);
+	Q_vsnprintf (string, sizeof(string), fmt, argptr);
 	va_end (argptr);
 	
 	MSG_WriteByte (&host_client->message, svc_stufftext);
@@ -840,7 +840,6 @@ Host_Init
 */
 void Host_Init (quakeparms_t *parms)
 {
-
 	if (standard_quake)
 		minimum_memory = MINIMUM_MEMORY;
 	else
@@ -874,8 +873,8 @@ void Host_Init (quakeparms_t *parms)
 	NET_Init ();
 	SV_Init ();
 
-	Con_Printf ("Exe: "__TIME__" "__DATE__"\n");
-	Con_Printf ("%4.1f megabyte heap\n",parms->memsize/ (1024*1024.0));
+	Sys_Printf_f ("Executable built at: "__TIME__" "__DATE__"\n");
+	Sys_Printf_f ("Heap: %4.1f MiB\n", parms->memsize / (1024 * 1024.0));
 	
 	R_InitTextures ();		// needed even for dedicated servers
  
@@ -923,7 +922,7 @@ void Host_Init (quakeparms_t *parms)
 
 	host_initialized = true;
 	
-	Sys_Printf ("========Quake Initialized=========\n");	
+	Sys_Printf ("========= Quake Initialized =========\n");
 }
 
 

@@ -1582,7 +1582,7 @@ void M_Keys_Key (int k)
 		}
 		else if (k != '`')
 		{
-			sprintf (cmd, "bind \"%s\" \"%s\"\n", Key_KeynumToString (k), bindnames[keys_cursor][0]);
+			Q_snprintf (cmd, sizeof(cmd), "bind \"%s\" \"%s\"\n", Key_KeynumToString (k), bindnames[keys_cursor][0]);
 			Cbuf_InsertText (cmd);
 		}
 
@@ -3033,9 +3033,9 @@ void M_ServerList_Draw (void)
 	for (n = 0; n < hostCacheCount; n++)
 	{
 		if (hostcache[n].maxusers)
-			sprintf(string, "%-15.15s %-15.15s %2u/%2u\n", hostcache[n].name, hostcache[n].map, hostcache[n].users, hostcache[n].maxusers);
+			Q_snprintf(string, sizeof(string), "%-15.15s %-15.15s %2u/%2u\n", hostcache[n].name, hostcache[n].map, hostcache[n].users, hostcache[n].maxusers);
 		else
-			sprintf(string, "%-15.15s %-15.15s\n", hostcache[n].name, hostcache[n].map);
+			Q_snprintf(string, sizeof(string), "%-15.15s %-15.15s\n", hostcache[n].name, hostcache[n].map);
 		M_Print (16, 32 + 8*n, string);
 	}
 	M_DrawMenuCursor (0, 32 + slist_cursor*8);

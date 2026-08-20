@@ -454,18 +454,18 @@ static char *PR_ValueString (etype_t type, eval_t *val)
 	switch (type)
 	{
 	case ev_string:
-		sprintf (line, "%s", PR_GetString(val->string));
+		Q_snprintf (line, sizeof(line), "%s", PR_GetString(val->string));
 		break;
 	case ev_entity:
 		sprintf (line, "entity %i", NUM_FOR_EDICT(PROG_TO_EDICT(val->edict)) );
 		break;
 	case ev_function:
 		f = pr_functions + val->function;
-		sprintf (line, "%s()", PR_GetString(f->s_name));
+		Q_snprintf (line, sizeof(line), "%s()", PR_GetString(f->s_name));
 		break;
 	case ev_field:
 		def = ED_FieldAtOfs ( val->_int );
-		sprintf (line, ".%s", PR_GetString(def->s_name));
+		Q_snprintf (line, sizeof(line), ".%s", PR_GetString(def->s_name));
 		break;
 	case ev_void:
 		sprintf (line, "void");
@@ -506,18 +506,18 @@ static char *PR_UglyValueString (etype_t type, eval_t *val)
 	switch (type)
 	{
 	case ev_string:
-		sprintf (line, "%s", PR_GetString(val->string));
+		Q_snprintf (line, sizeof(line), "%s", PR_GetString(val->string));
 		break;
 	case ev_entity:
 		sprintf (line, "%i", NUM_FOR_EDICT(PROG_TO_EDICT(val->edict)));
 		break;
 	case ev_function:
 		f = pr_functions + val->function;
-		sprintf (line, "%s", PR_GetString(f->s_name));
+		Q_snprintf (line, sizeof(line), "%s", PR_GetString(f->s_name));
 		break;
 	case ev_field:
 		def = ED_FieldAtOfs ( val->_int );
-		sprintf (line, "%s", PR_GetString(def->s_name));
+		Q_snprintf (line, sizeof(line), "%s", PR_GetString(def->s_name));
 		break;
 	case ev_void:
 		sprintf (line, "void");
@@ -555,11 +555,11 @@ char *PR_GlobalString (int ofs)
 	val = (void *)&pr_globals[ofs];
 	def = ED_GlobalAtOfs(ofs);
 	if (!def)
-		sprintf (line,"%i(???)", ofs);
+		sprintf (line, "%i(???)", ofs);
 	else
 	{
 		s = PR_ValueString (def->type, val);
-		sprintf (line,"%i(%s)%s", ofs, PR_GetString(def->s_name), s);
+		Q_snprintf (line, sizeof(line), "%i(%s)%s", ofs, PR_GetString(def->s_name), s);
 	}
 
 	i = strlen(line);
@@ -578,9 +578,9 @@ char *PR_GlobalStringNoContents (int ofs)
 
 	def = ED_GlobalAtOfs(ofs);
 	if (!def)
-		sprintf (line,"%i(???)", ofs);
+		sprintf (line, "%i(???)", ofs);
 	else
-		sprintf (line,"%i(%s)", ofs, PR_GetString(def->s_name));
+		Q_snprintf (line, sizeof(line), "%i(%s)", ofs, PR_GetString(def->s_name));
 
 	i = strlen(line);
 	for ( ; i<20 ; i++)
