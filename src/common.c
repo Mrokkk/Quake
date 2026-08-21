@@ -898,9 +898,9 @@ char *COM_FileExtension (char *in)
 COM_FileBase
 ============
 */
-void COM_FileBase (char *in, char *out)
+void COM_FileBase (const char *in, char *out)
 {
-	char *s, *s2;
+	const char *s, *s2;
 
 	s = in + strlen(in) - 1;
 
@@ -1329,7 +1329,7 @@ COM_WriteFile
 The filename will be prefixed by the current game directory
 ============
 */
-void COM_WriteFile (char *filename, void *data, int len)
+void COM_WriteFile (const char *filename, void *data, int len)
 {
 	int		handle, res;
 	char	name[MAX_OSPATH];
@@ -1415,7 +1415,7 @@ Finds the file in the search path.
 Sets com_filesize and one of handle or file
 ===========
 */
-static int COM_FindFile (char *filename, int *handle, FILE **file)
+static int COM_FindFile (const char *filename, int *handle, FILE **file)
 {
 	searchpath_t	*search;
 	char			netpath[MAX_OSPATH];
@@ -1567,7 +1567,7 @@ returns a handle and a length
 it may actually be inside a pak file
 ===========
 */
-int COM_OpenFile (char *filename, int *handle)
+int COM_OpenFile (const char *filename, int *handle)
 {
 	return COM_FindFile (filename, handle, NULL);
 }
@@ -1580,7 +1580,7 @@ If the requested file is inside a packfile, a new FILE * will be opened
 into the file.
 ===========
 */
-int COM_FOpenFile (char *filename, FILE **file)
+int COM_FOpenFile (const char *filename, FILE **file)
 {
 	return COM_FindFile (filename, NULL, file);
 }
@@ -1615,7 +1615,7 @@ static cache_user_t	*loadcache;
 static byte			*loadbuf;
 static int			loadsize;
 
-byte *COM_LoadFile (char *path, int usehunk)
+byte *COM_LoadFile (const char *path, int usehunk)
 {
 	int		h;
 	byte	*buf = NULL;
@@ -1661,24 +1661,24 @@ byte *COM_LoadFile (char *path, int usehunk)
 	return buf;
 }
 
-byte *COM_LoadHunkFile (char *path)
+byte *COM_LoadHunkFile (const char *path)
 {
 	return COM_LoadFile (path, 1);
 }
 
-byte *COM_LoadTempFile (char *path)
+byte *COM_LoadTempFile (const char *path)
 {
 	return COM_LoadFile (path, 2);
 }
 
-void COM_LoadCacheFile (char *path, struct cache_user_s *cu)
+void COM_LoadCacheFile (const char *path, struct cache_user_s *cu)
 {
 	loadcache = cu;
 	COM_LoadFile (path, 3);
 }
 
 // uses temp hunk if larger than bufsize
-byte *COM_LoadStackFile (char *path, void *buffer, int bufsize)
+byte *COM_LoadStackFile (const char *path, void *buffer, int bufsize)
 {
 	byte    *buf;
 

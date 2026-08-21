@@ -209,7 +209,7 @@ void COM_InitArgv (int argc, char **argv);
 
 char *COM_SkipPath (char *pathname);
 void COM_StripExtension (char *in, char *out);
-void COM_FileBase (char *in, char *out);
+void COM_FileBase (const char *in, char *out);
 void COM_DefaultExtension (char *path, char *extension);
 
 char *va(const char *format, ...) Q_PRINTF_FORMAT(1);
@@ -223,15 +223,15 @@ struct cache_user_s;
 
 extern	char	com_gamedir[MAX_OSPATH];
 
-void COM_WriteFile (char *filename, void *data, int len);
-int COM_OpenFile (char *filename, int *hndl);
-int COM_FOpenFile (char *filename, FILE **file);
+void COM_WriteFile (const char *filename, void *data, int len);
+int COM_OpenFile (const char *filename, int *hndl);
+int COM_FOpenFile (const char *filename, FILE **file);
 void COM_CloseFile (int h);
 
-byte *COM_LoadStackFile (char *path, void *buffer, int bufsize);
-byte *COM_LoadTempFile (char *path);
-byte *COM_LoadHunkFile (char *path);
-void COM_LoadCacheFile (char *path, struct cache_user_s *cu);
+byte *COM_LoadStackFile (const char *path, void *buffer, int bufsize);
+byte *COM_LoadTempFile (const char *path);
+byte *COM_LoadHunkFile (const char *path);
+void COM_LoadCacheFile (const char *path, struct cache_user_s *cu);
 
 extern	struct cvar_s	registered;
 

@@ -511,7 +511,7 @@ void Con_DrawInput (void)
 	{
 		for (i = 0; i < con_linewidth; i++)
 		{
-			Draw_Character_Align ((i + 1) * CHAR_HEIGHT, y, LEFT, TOP, text[i]);
+			Draw_Character_Align ((i + 1) * FONT_HEIGHT, y, LEFT, TOP, text[i]);
 		}
 	}
 
@@ -554,10 +554,10 @@ void Con_DrawNotify (void)
 
 		for (x = 0; x < con_linewidth; x++)
 		{
-			Draw_Character_Align ((x + 1) * CHAR_WIDTH, v, LEFT, TOP, text[x]);
+			Draw_Character_Align ((x + 1) * FONT_WIDTH, v, LEFT, TOP, text[x]);
 		}
 
-		v += CHAR_HEIGHT;
+		v += FONT_HEIGHT;
 	}
 
 	if (key_dest == key_message)
@@ -607,8 +607,8 @@ void Con_DrawConsole (int lines, qboolean drawinput)
 	// draw the text
 	con_vislines = lines;
 
-	rows = (lines / scr_scaling - 16) / (CHAR_HEIGHT);		// rows of text to draw
-	y = lines / scr_scaling - 16 - (rows * CHAR_HEIGHT);	// may start slightly negative
+	rows = (lines / scr_scaling - 16) / (FONT_HEIGHT);		// rows of text to draw
+	y = lines / scr_scaling - 16 - (rows * FONT_HEIGHT);	// may start slightly negative
 
 	for (i = con_current - rows + 1; i <= con_current; i++, y += 8)
 	{
@@ -621,7 +621,7 @@ void Con_DrawConsole (int lines, qboolean drawinput)
 
 		for (x = 0; x < con_linewidth; x++)
 		{
-			Draw_Character_Align ((x + 1) * CHAR_WIDTH, y, LEFT, TOP, text[x]);
+			Draw_Character_Align ((x + 1) * FONT_WIDTH, y, LEFT, TOP, text[x]);
 		}
 	}
 

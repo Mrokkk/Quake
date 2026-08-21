@@ -1473,14 +1473,14 @@ static void VID_Menu_Draw(void)
 	y += 28;
 
 	title = "Video Options";
-	M_PrintWhite((SCREEN_WIDTH - CHAR_WIDTH * strlen(title)) / 2, y, title);
+	M_PrintWhite((SCREEN_WIDTH - FONT_WIDTH * strlen(title)) / 2, y, title);
 
-	y += 2 * CHAR_WIDTH;
+	y += 2 * FONT_WIDTH;
 
-	for (i = 0; i < Q_ARRLEN(vid_opts); ++i, y += CHAR_WIDTH)
+	for (i = 0; i < Q_ARRLEN(vid_opts); ++i, y += FONT_WIDTH)
 	{
 		o = &vid_opts[i];
-		M_Print (16 + 18 * CHAR_WIDTH - strlen(o->name) * CHAR_WIDTH, y, o->name);
+		M_Print (16 + 18 * FONT_WIDTH - strlen(o->name) * FONT_WIDTH, y, o->name);
 		switch (o->type)
 		{
 			case menu_type_onoff:
