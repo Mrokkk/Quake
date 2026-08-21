@@ -788,8 +788,8 @@ void Sbar_DrawFrags (void)
 		top = Sbar_ColorForMap (top);
 		bottom = Sbar_ColorForMap (bottom);
 
-		Draw_Fill_Align (xofs + x*8 + 10, y, 28, 4, top, xalign, BOTTOM);
-		Draw_Fill_Align (xofs + x*8 + 10, y+4, 28, 3, bottom, xalign, BOTTOM);
+		Draw_Fill_Align (xofs + x*8 + 10, y, 28, 4, xalign, BOTTOM, top);
+		Draw_Fill_Align (xofs + x*8 + 10, y+4, 28, 3, xalign, BOTTOM, bottom);
 
 	// draw number
 		f = s->frags;
@@ -851,8 +851,8 @@ void Sbar_DrawFace (void)
 		}
 
 		Sbar_DrawPic (112, 0, rsb_teambord);
-		Draw_Fill_Align (xofs, -SBAR_HEIGHT + 3, 22, 9, top, xalign, BOTTOM);
-		Draw_Fill_Align (xofs, -SBAR_HEIGHT + 12, 22, 9, bottom, xalign, BOTTOM);
+		Draw_Fill_Align (xofs, -SBAR_HEIGHT + 3, 22, 9, xalign, BOTTOM, top);
+		Draw_Fill_Align (xofs, -SBAR_HEIGHT + 12, 22, 9, xalign, BOTTOM, bottom);
 
 		// draw number
 		f = s->frags;
@@ -1118,8 +1118,8 @@ void Sbar_DeathmatchOverlay (void)
 		top = Sbar_ColorForMap (top);
 		bottom = Sbar_ColorForMap (bottom);
 
-		Draw_Fill_Align ( x, y, 40, 4, top, CENTER, CENTER);
-		Draw_Fill_Align ( x, y+4, 40, 4, bottom, CENTER, CENTER);
+		Draw_Fill_Align ( x, y, 40, 4, CENTER, CENTER, top);
+		Draw_Fill_Align ( x, y+4, 40, 4, CENTER, CENTER, bottom);
 
 	// draw number
 		f = s->frags;
@@ -1174,7 +1174,7 @@ void Sbar_MiniDeathmatchOverlay (void)
 	x = SCREEN_WIDTH - vid.width / scr_scaling;
 
 	// let more than 20 characters be truncated
-	if (x > -20 * CHAR_WIDTH)
+	if (x > -20 * FONT_WIDTH)
 		return;
 
 	scr_copyeverything = 1;
@@ -1185,7 +1185,7 @@ void Sbar_MiniDeathmatchOverlay (void)
 
 	// draw the text
 	y = - sb_lines;
-	numlines = sb_lines / CHAR_HEIGHT;
+	numlines = sb_lines / FONT_HEIGHT;
 	if (numlines < 3)
 		return;
 
@@ -1214,8 +1214,8 @@ void Sbar_MiniDeathmatchOverlay (void)
 		top = Sbar_ColorForMap (top);
 		bottom = Sbar_ColorForMap (bottom);
 
-		Draw_Fill_Align (x, y + 1, 40, 3, top, RIGHT, BOTTOM);
-		Draw_Fill_Align (x, y + 4, 40, 4, bottom, RIGHT, BOTTOM);
+		Draw_Fill_Align (x, y + 1, 40, 3, RIGHT, BOTTOM, top);
+		Draw_Fill_Align (x, y + 4, 40, 4, RIGHT, BOTTOM, bottom);
 
 		// draw number
 		f = s->frags;
@@ -1235,7 +1235,7 @@ void Sbar_MiniDeathmatchOverlay (void)
 		// draw name
 		Draw_String_Align (x + 48, y, RIGHT, BOTTOM, s->name);
 
-		y += CHAR_HEIGHT;
+		y += FONT_HEIGHT;
 	}
 }
 

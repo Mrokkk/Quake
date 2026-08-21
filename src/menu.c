@@ -261,7 +261,7 @@ void M_DrawSlider (int x, int y, float range, float value, const char *fmt)
 	M_DrawCharacter (x + i * 8, y, 130);
 	M_DrawCharacter (x + (SLIDER_RANGE - 1) * 8 * range, y, 131);
 	Q_snprintf (buf, sizeof(buf), fmt, value);
-	M_Print (x + (SLIDER_RANGE + 1) * CHAR_WIDTH, y, buf);
+	M_Print (x + (SLIDER_RANGE + 1) * FONT_WIDTH, y, buf);
 }
 
 void M_DrawCheckbox (int x, int y, int on)
@@ -556,7 +556,7 @@ void M_Load_Draw (void)
 	M_DrawMenuHeader ("gfx/p_load.lmp");
 
 	for (i = 0; i < MAX_SAVEGAMES; i++)
-		M_Print (16, 32 + CHAR_HEIGHT * i, m_filenames[i]);
+		M_Print (16, 32 + FONT_HEIGHT * i, m_filenames[i]);
 
 	// line cursor
 	M_DrawMenuCursor (8, 32 + load_cursor * 8);
@@ -569,7 +569,7 @@ void M_Save_Draw (void)
 	M_DrawMenuHeader ("gfx/p_save.lmp");
 
 	for (i = 0; i < MAX_SAVEGAMES; i++)
-		M_Print (16, 32 + CHAR_HEIGHT * i, m_filenames[i]);
+		M_Print (16, 32 + FONT_HEIGHT * i, m_filenames[i]);
 
 	// line cursor
 	M_DrawMenuCursor (8, 32 + load_cursor * 8);
@@ -1297,11 +1297,11 @@ void M_Options_Draw (void)
 
 	y = starty;
 
-	for (i = 0; i < Q_ARRLEN(options); ++i, y += CHAR_HEIGHT)
+	for (i = 0; i < Q_ARRLEN(options); ++i, y += FONT_HEIGHT)
 	{
 		o = &options[i];
 
-		M_Print (16 + (18 - o->namelen) * CHAR_WIDTH, y, o->name);
+		M_Print (16 + (18 - o->namelen) * FONT_WIDTH, y, o->name);
 
 		switch (o->type)
 		{
@@ -1330,10 +1330,10 @@ void M_Options_Draw (void)
 
 	if (video_menu)
 	{
-		M_Print (16 + 5 * CHAR_WIDTH, y, "Video Options");
+		M_Print (16 + 5 * FONT_WIDTH, y, "Video Options");
 	}
 
-	M_DrawMenuCursor (168, starty + options_cursor * CHAR_HEIGHT);
+	M_DrawMenuCursor (168, starty + options_cursor * FONT_HEIGHT);
 }
 
 static void M_Adjust (option_t *o, int dir)

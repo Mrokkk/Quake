@@ -42,7 +42,7 @@ qpic_t	*draw_backtile;
 
 typedef struct cachepic_s
 {
-	char		name[MAX_QPATH];
+	char			name[MAX_QPATH];
 	cache_user_t	cache;
 } cachepic_t;
 
@@ -50,7 +50,7 @@ typedef struct cachepic_s
 cachepic_t	menu_cachepics[MAX_CACHED_PICS];
 int			menu_numcachepics;
 
-qpic_t	*Draw_PicFromWad (char *name)
+qpic_t	*Draw_PicFromWad (const char *name)
 {
 	return W_GetLumpName (name);
 }
@@ -60,22 +60,23 @@ qpic_t	*Draw_PicFromWad (char *name)
 Draw_CachePic
 ================
 */
-qpic_t *Draw_CachePic (char *path)
+qpic_t *Draw_CachePic (const char *path)
 {
 	cachepic_t	*pic;
 	int			i;
 	qpic_t		*dat;
 
-	for (pic=menu_cachepics, i=0 ; i<menu_numcachepics ; pic++, i++)
+	for (pic = menu_cachepics, i = 0; i < menu_numcachepics; pic++, i++)
 		if (!strcmp (path, pic->name))
 			break;
 
 	if (i == menu_numcachepics)
 	{
-		if (menu_numcachepics == MAX_CACHED_PICS)
+		if (Q_UNLIKELY(menu_numcachepics == MAX_CACHED_PICS))
 			Sys_Error ("menu_numcachepics == MAX_CACHED_PICS");
 		menu_numcachepics++;
-		strcpy (pic->name, path);
+		if (Q_UNLIKELY(Q_strlcpy (pic->name, path, sizeof(pic->name)) >= sizeof(pic->name)))
+			Sys_Error ("pic name truncated: %s\n", path);
 	}
 
 	dat = Cache_Check (&pic->cache);
@@ -108,11 +109,11 @@ static void Draw_CharToConback (int num, byte *dest)
 	col = num & 15;
 	source = draw_chars + (row << 10) + (col << 3);
 
-	drawline = CHAR_HEIGHT;
+	drawline = FONT_HEIGHT;
 
 	while (drawline--)
 	{
-		for (x = 0; x < 8; x++)
+		for (x = 0; x < FONT_WIDTH; x++)
 		{
 			if (source[x])
 			{
@@ -149,35 +150,75 @@ void Draw_Init (void)
 
 	// hack the version number directly into the pic
 	sprintf (ver, "Quake %4.2f", (float)VERSION);
-	dest = conback->data + SCREEN_WIDTH * 186 + SCREEN_WIDTH - 11 - CHAR_WIDTH * strlen(ver);
+	dest = conback->data + SCREEN_WIDTH * 186 + SCREEN_WIDTH - 11 - FONT_WIDTH * strlen(ver);
 
 	for (x = 0; x < strlen(ver); x++)
 	{
-		Draw_CharToConback (ver[x], dest + x * CHAR_WIDTH);
+		Draw_CharToConback (ver[x], dest + x * FONT_WIDTH);
 	}
 }
 
 static inline int GetAlignedX(int x, align_t xa)
 {
-	switch (xa)
+	switch (xa.v)
 	{
-		case CENTER:	return x * scr_scaling + scr_xoff;
-		case LEFT:		return x * scr_scaling;
-		case RIGHT:		return x * scr_scaling + vid.width;
+		case _CENTER:	return x * scr_scaling + scr_xoff;
+		case _LEFT:		return x * scr_scaling;
+		case _RIGHT:	return x * scr_scaling + vid.width;
 		default:		return x;
 	}
 }
 
 static inline int GetAlignedY(int y, align_t ya)
 {
-	switch (ya)
+	switch (ya.v)
 	{
-		case CENTER:	return y * scr_scaling + scr_yoff;
-		case TOP:		return y * scr_scaling;
-		case BOTTOM:	return y * scr_scaling + vid.height;
+		case _CENTER:	return y * scr_scaling + scr_yoff;
+		case _TOP:		return y * scr_scaling;
+		case _BOTTOM:	return y * scr_scaling + vid.height;
 		default:		return y;
 	}
 }
+
+#define FONT_ATLAS_COLUMNS	16
+#define FONT_ATLAS_ROWS		16
+#define FONT_ATLAS_RESX		(FONT_ATLAS_COLUMNS * FONT_WIDTH)
+#define FONT_ATLAS_RESY		(FONT_ATLAS_ROWS * FONT_HEIGHT)
+#define FONT_ATLAS_PITCH	(FONT_ATLAS_RESX * FONT_HEIGHT)
+
+#define DRAW_CHAR(scaling)							\
+	while (source_drawline--)						\
+	{												\
+		for (i = 0; i < scaling; ++i)				\
+		{											\
+			for (k = 0; k < FONT_WIDTH; ++k)		\
+			{										\
+				if (!(pixel = source[k]))			\
+				{									\
+					continue;						\
+				}									\
+				for (j = 0; j < scaling; ++j)		\
+				{									\
+					dest[k * scaling + j] = pixel;	\
+				}									\
+			}										\
+			dest += vid.conrowbytes;				\
+		}											\
+		source += FONT_ATLAS_RESX;					\
+	}
+
+#define DRAW_LOOP(macro) \
+	switch (scr_scaling)				\
+	{									\
+		case 7:		macro(7); break;	\
+		case 6:		macro(6); break;	\
+		case 5:		macro(5); break;	\
+		case 4:		macro(4); break;	\
+		case 3:		macro(3); break;	\
+		case 2:		macro(2); break;	\
+		case 1:		macro(1); break;	\
+		default:	macro(scr_scaling);	\
+	}
 
 /*
 ================
@@ -188,62 +229,36 @@ It can be clipped to the top of the screen to allow the console to be
 smoothly scrolled off.
 ================
 */
-static void Draw_Character_Impl (int x, int y, int num)
+static void Draw_Character_Impl (int x, int y, byte num)
 {
-	byte	*dest, *source, pixel;
-	int		source_drawline;
-	int		row, col, i, j, k, scale;
+	const byte	*source;
+	byte		*dest, pixel;
+	int			source_drawline;
+	int			row, col, i, j, k, scaled_height;
 
-	scale = scr_scaling;
+	scaled_height = FONT_HEIGHT * scr_scaling;
 
-	num &= 0xff;
-
-	if (y <= -CHAR_HEIGHT * scale)
+	if (Q_UNLIKELY(y <= -scaled_height || y >= (int)vid.height - scaled_height))
 		return;			// totally off screen
 
-#ifdef PARANOID
-	if (y > vid.height - CHAR_HEIGHT || x < 0 || x > vid.width - CHAR_WIDTH)
-		Sys_Error ("Con_DrawCharacter: (%i, %i)", x, y);
-	if (num < 0 || num > 255)
-		Sys_Error ("Con_DrawCharacter: char %i", num);
-#endif
-
-	row = num >> 4;
-	col = num & 15;
-	source = draw_chars + (row << 10) + (col << 3);
+	row = num / FONT_ATLAS_ROWS;
+	col = num % FONT_ATLAS_ROWS;
+	source = draw_chars + (row * FONT_ATLAS_PITCH) + col * FONT_WIDTH;
 
 	if (y < 0)
 	{	// clipped
-		source_drawline = CHAR_HEIGHT + y;
-		source -= 128 * y / scale;
+		source_drawline = FONT_HEIGHT + y;
+		source -= FONT_ATLAS_RESX * y / scr_scaling;
 		y = 0;
 	}
 	else
 	{
-		source_drawline = CHAR_HEIGHT;
+		source_drawline = FONT_HEIGHT;
 	}
 
 	dest = vid.conbuffer + y * vid.conrowbytes + x;
 
-	while (source_drawline--)
-	{
-		for (i = 0; i < scale; ++i)
-		{
-			for (k = 0; k < CHAR_WIDTH; ++k)
-			{
-				if (!(pixel = source[k]))
-				{
-					continue;
-				}
-				for (j = 0; j < scale; ++j)
-				{
-					dest[k * scale + j] = pixel;
-				}
-			}
-			dest += vid.conrowbytes;
-		}
-		source += 128;
-	}
+	DRAW_LOOP(DRAW_CHAR);
 }
 
 /*
@@ -251,7 +266,7 @@ static void Draw_Character_Impl (int x, int y, int num)
 Draw_Character_Align
 ================
 */
-void Draw_Character_Align (int x, int y, align_t xa, align_t ya, int num)
+void Draw_Character_Align (int x, int y, align_t xa, align_t ya, byte num)
 {
 	Draw_Character_Impl(GetAlignedX(x, xa), GetAlignedY(y, ya), num);
 }
@@ -261,7 +276,7 @@ void Draw_Character_Align (int x, int y, align_t xa, align_t ya, int num)
 Draw_Character_Center
 ================
 */
-void Draw_Character_Center (int x, int y, int num)
+void Draw_Character_Center (int x, int y, byte num)
 {
 	Draw_Character_Impl(GetAlignedX(x, CENTER), GetAlignedY(y, CENTER), num);
 }
@@ -271,7 +286,7 @@ void Draw_Character_Center (int x, int y, int num)
 Draw_String_Align
 ================
 */
-void Draw_String_Align (int x, int y, align_t xa, align_t ya, char *str)
+void Draw_String_Align (int x, int y, align_t xa, align_t ya, const char *str)
 {
 	x = GetAlignedX(x, xa);
 	y = GetAlignedY(y, ya);
@@ -279,48 +294,144 @@ void Draw_String_Align (int x, int y, align_t xa, align_t ya, char *str)
 	{
 		Draw_Character_Impl (x, y, *str);
 		str++;
-		x += CHAR_WIDTH * scr_scaling;
+		x += FONT_WIDTH * scr_scaling;
 	}
 }
+
+typedef struct
+{
+	short x, y;
+	short w, h;
+	short xoff, yoff;
+} rect_t;
+
+static inline rect_t CalculateRect(int x, int y, int w, int h)
+{
+	rect_t	r;
+	int		xoff = 0, yoff = 0, diff;
+
+	if (Q_UNLIKELY(x < 0))
+	{
+		xoff = -x;
+		w -= xoff;
+		x = 0;
+	}
+	else if (Q_UNLIKELY((diff = x + w - (int)vid.width) > 0))
+	{
+		w -= diff;
+	}
+
+	if (Q_UNLIKELY(y < 0))
+	{
+		yoff = -y;
+		h -= yoff;
+		y = 0;
+	}
+	else if (Q_UNLIKELY((diff = y + h - (int)vid.height) > 0))
+	{
+		h -= diff;
+	}
+
+	r.x = x;
+	r.y = y;
+	r.w = w;
+	r.h = h;
+	r.xoff = xoff;
+	r.yoff = yoff;
+
+	return r;
+}
+
+#define DRAW_PIC_IMPL(scaling, get_pixel)			\
+	while (r.h--)									\
+	{												\
+		for (j = 0; j < scaling; ++j)				\
+		{											\
+			for (i = 0; i < r.w; ++i)				\
+			{										\
+				get_pixel;							\
+				for (k = 0; k < scaling; ++k)		\
+				{									\
+					dest[i * scaling + k] = pixel;	\
+				}									\
+			}										\
+			dest += vid.rowbytes;					\
+		}											\
+		source += pic_w;							\
+	}
 
 /*
 ================
 Draw_Pic_Impl
 ================
 */
-static void Draw_Pic_Impl(int x, int y, qpic_t *pic)
+static void Draw_Pic_Impl(int x, int y, const qpic_t *pic)
 {
-	byte	*dest, *source, pixel;
-	int		h, w, i, j, k;
+	const byte	*source;
+	byte		*dest, pixel;
+	int			pic_w, i, j, k;
+	int			scaled_w, scaled_h;
+	rect_t		r;
 
-	if (x < 0 || (unsigned)(x + pic->width * scr_scaling) > vid.width || y < 0 ||
-		(unsigned)(y + pic->height * scr_scaling) > vid.height)
+	pic_w = pic->width;
+
+	scaled_w = pic_w * scr_scaling;
+	scaled_h = pic->height * scr_scaling;
+
+	r = CalculateRect(x, y, scaled_w, scaled_h);
+
+	if (Q_UNLIKELY(r.w < 0 || r.h < 0))
 	{
-		Sys_Error_f ("bad coordinates: %u, %u\n", x, y);
+		return;
 	}
 
-	w = pic->width;
-	h = pic->height;
+	r.w /= scr_scaling;
+	r.h /= scr_scaling;
 
-	source = pic->data;
-	dest = vid.buffer + y * vid.rowbytes + x;
+	source = pic->data + r.yoff / scr_scaling * pic_w + r.xoff / scr_scaling;
+	dest = vid.buffer + r.y * vid.rowbytes + r.x;
 
-	while (h--)
+#define DRAW_PIC(scaling) \
+	DRAW_PIC_IMPL(scaling, ({ pixel = source[i]; }))
+
+	DRAW_LOOP(DRAW_PIC);
+}
+
+/*
+=============
+Draw_TransPic_Impl
+=============
+*/
+static void Draw_TransPic_Impl (int x, int y, const qpic_t *pic)
+{
+	const byte	*source;
+	byte		*dest, pixel;
+	int			pic_w, i, j, k;
+	int			scaled_w, scaled_h;
+	rect_t		r;
+
+	pic_w = pic->width;
+
+	scaled_w = pic_w * scr_scaling;
+	scaled_h = pic->height * scr_scaling;
+
+	r = CalculateRect(x, y, scaled_w, scaled_h);
+
+	if (Q_UNLIKELY(r.w < 0 || r.h < 0))
 	{
-		for (i = 0; i < scr_scaling; ++i)
-		{
-			for (k = 0; k < w; ++k)
-			{
-				pixel = source[k];
-				for (j = 0; j < scr_scaling; ++j)
-				{
-					dest[k * scr_scaling + j] = pixel;
-				}
-			}
-			dest += vid.rowbytes;
-		}
-		source += w;
+		return;
 	}
+
+	r.w /= scr_scaling;
+	r.h /= scr_scaling;
+
+	source = pic->data + r.xoff / scr_scaling + r.yoff / scr_scaling * pic_w;
+	dest = vid.buffer + r.y * vid.rowbytes + r.x;
+
+#define DRAW_TRANS_PIC(scaling)	\
+	DRAW_PIC_IMPL(scaling, ({ if ((pixel = source[i]) == TRANSPARENT_COLOR) continue; }))
+
+	DRAW_LOOP(DRAW_TRANS_PIC);
 }
 
 /*
@@ -328,7 +439,7 @@ static void Draw_Pic_Impl(int x, int y, qpic_t *pic)
 Draw_Pic_Align
 =============
 */
-void Draw_Pic_Align (int x, int y, align_t xa, align_t ya, qpic_t *pic)
+void Draw_Pic_Align (int x, int y, align_t xa, align_t ya, const qpic_t *pic)
 {
 	Draw_Pic_Impl(GetAlignedX(x, xa), GetAlignedY(y, ya), pic);
 }
@@ -338,52 +449,9 @@ void Draw_Pic_Align (int x, int y, align_t xa, align_t ya, qpic_t *pic)
 Draw_Pic_Center
 =============
 */
-void Draw_Pic_Center (int x, int y, qpic_t *pic)
+void Draw_Pic_Center (int x, int y, const qpic_t *pic)
 {
 	Draw_Pic_Impl(GetAlignedX(x, CENTER), GetAlignedY(y, CENTER), pic);
-}
-
-/*
-=============
-Draw_TransPic_Impl
-=============
-*/
-static void Draw_TransPic_Impl (int x, int y, qpic_t *pic)
-{
-	byte	*dest, *source, pixel;
-	int		h, w, i, j, k;
-
-	if (x < 0 || (unsigned)(x + pic->width * scr_scaling) > vid.width || y < 0 ||
-		(unsigned)(y + pic->height * scr_scaling) > vid.height)
-	{
-		Sys_Error_f ("bad coordinates: %u, %u\n", x, y);
-	}
-
-	w = pic->width;
-	h = pic->height;
-
-	source = pic->data;
-	dest = vid.buffer + y * vid.rowbytes + x;
-
-	while (h--)
-	{
-		for (i = 0; i < scr_scaling; ++i)
-		{
-			for (k = 0; k < w; ++k)
-			{
-				if ((pixel = source[k]) == TRANSPARENT_COLOR)
-				{
-					continue;
-				}
-				for (j = 0; j < scr_scaling; ++j)
-				{
-					dest[k * scr_scaling + j] = pixel;
-				}
-			}
-			dest += vid.rowbytes;
-		}
-		source += w;
-	}
 }
 
 /*
@@ -391,7 +459,7 @@ static void Draw_TransPic_Impl (int x, int y, qpic_t *pic)
 Draw_TransPic_Align
 =============
 */
-void Draw_TransPic_Align (int x, int y, align_t xa, align_t ya, qpic_t *pic)
+void Draw_TransPic_Align (int x, int y, align_t xa, align_t ya, const qpic_t *pic)
 {
 	Draw_TransPic_Impl(GetAlignedX(x, xa), GetAlignedY(y, ya), pic);
 }
@@ -401,7 +469,7 @@ void Draw_TransPic_Align (int x, int y, align_t xa, align_t ya, qpic_t *pic)
 Draw_TransPic_Center
 =============
 */
-void Draw_TransPic_Center (int x, int y, qpic_t *pic)
+void Draw_TransPic_Center (int x, int y, const qpic_t *pic)
 {
 	Draw_TransPic_Impl(GetAlignedX(x, CENTER), GetAlignedY(y, CENTER), pic);
 }
@@ -411,44 +479,36 @@ void Draw_TransPic_Center (int x, int y, qpic_t *pic)
 Draw_TransPicTranslate_Impl
 =============
 */
-static void Draw_TransPicTranslate_Impl (int x, int y, qpic_t *pic, byte *translation)
+static void Draw_TransPicTranslate_Impl (int x, int y, const qpic_t *pic, const byte *translation)
 {
-	byte	*dest, *source, tbyte, pixel;
-	int		h, w, i, j, k;
+	const byte	*source;
+	byte		*dest, tbyte, pixel;
+	int			pic_w, i, j, k;
+	int			scaled_w, scaled_h;
+	rect_t		r;
 
-	if (x < 0 || (unsigned)(x + pic->width) > vid.width || y < 0 ||
-		(unsigned)(y + pic->height) > vid.height)
+	pic_w = pic->width;
+
+	scaled_w = pic_w * scr_scaling;
+	scaled_h = pic->height * scr_scaling;
+
+	r = CalculateRect(x, y, scaled_w, scaled_h);
+
+	if (Q_UNLIKELY(r.w < 0 || r.h < 0))
 	{
-		Sys_Error_f ("bad coordinates: %u, %u\n", x, y);
+		return;
 	}
 
-	w = pic->width;
-	h = pic->height;
+	r.w /= scr_scaling;
+	r.h /= scr_scaling;
 
-	source = pic->data;
+	source = pic->data + r.xoff / scr_scaling + r.yoff / scr_scaling * pic_w;
+	dest = vid.buffer + r.y * vid.rowbytes + r.x;
 
-	dest = vid.buffer + y * vid.rowbytes + x;
+#define DRAW_TRANS_PIC_TRANSLATE(scaling) \
+	DRAW_PIC_IMPL(scaling, ({ if ((tbyte = source[i]) == TRANSPARENT_COLOR) continue; pixel = translation[tbyte]; }))
 
-	while (h--)
-	{
-		for (i = 0; i < scr_scaling; ++i)
-		{
-			for (k = 0; k < w; ++k)
-			{
-				if ((tbyte = source[k]) == TRANSPARENT_COLOR)
-				{
-					continue;
-				}
-				pixel = translation[tbyte];
-				for (j = 0; j < scr_scaling; ++j)
-				{
-					dest[k * scr_scaling + j] = pixel;
-				}
-			}
-			dest += vid.rowbytes;
-		}
-		source += w;
-	}
+	DRAW_LOOP(DRAW_TRANS_PIC_TRANSLATE);
 }
 
 /*
@@ -456,7 +516,7 @@ static void Draw_TransPicTranslate_Impl (int x, int y, qpic_t *pic, byte *transl
 Draw_TransPicTranslate_Align
 =============
 */
-void Draw_TransPicTranslate_Align (int x, int y, align_t xa, align_t ya, qpic_t *pic, byte *translation)
+void Draw_TransPicTranslate_Align (int x, int y, align_t xa, align_t ya, const qpic_t *pic, const byte *translation)
 {
 	Draw_TransPicTranslate_Impl(GetAlignedX(x, xa), GetAlignedY(y, ya), pic, translation);
 }
@@ -468,29 +528,35 @@ Draw_ConsoleBackground
 */
 void Draw_ConsoleBackground (int lines)
 {
-	size_t	x, y, v;
-	byte	*src, *dest;
-	int		f, fstep;
-	qpic_t	*conback;
+	int				x, y, v;
+	const byte		*src;
+	byte			*dest;
+	int				f, fstep;
+	const qpic_t	*conback;
 
 	conback = Draw_CachePic ("gfx/conback.lmp");
 
 	// draw the pic
 	dest = vid.conbuffer;
 
-	for (y = 0; y < (size_t)lines; y++, dest += vid.conrowbytes)
+	if (vid.conwidth == SCREEN_WIDTH)
 	{
-		v = (vid.conheight - lines + y) * SCREEN_HEIGHT / vid.conheight;
-		src = conback->data + v * SCREEN_WIDTH;
-		if (vid.conwidth == SCREEN_WIDTH)
+		for (y = 0; y < lines; y++, dest += vid.conrowbytes)
 		{
+			v = (vid.conheight - lines + y) * SCREEN_HEIGHT / vid.conheight;
+			src = conback->data + v * SCREEN_WIDTH;
 			memcpy (dest, src, vid.conwidth);
 		}
-		else
+	}
+	else
+	{
+		for (y = 0; y < lines; y++, dest += vid.conrowbytes)
 		{
+			v = (vid.conheight - lines + y) * SCREEN_HEIGHT / vid.conheight;
+			src = conback->data + v * SCREEN_WIDTH;
 			f = 0;
-			fstep = SCREEN_WIDTH * 0x10000 / vid.conwidth;
-			for (x = 0; x < vid.conwidth; x += 4)
+			fstep = SCREEN_WIDTH * (1 << 16) / vid.conwidth;
+			for (x = 0; x < (int)vid.conwidth; x += 4)
 			{
 				dest[x + 0] = src[f >> 16];
 				f += fstep;
@@ -635,9 +701,12 @@ static void Draw_Fill_Impl (int x, int y, int w, int h, int c)
 	byte	*dest;
 	int		u, v;
 
-	dest = vid.buffer + y*vid.rowbytes + x;
-	for (v=0 ; v<h ; v++, dest += vid.rowbytes)
-		for (u=0 ; u<w ; u++)
+	w = Q_MIN(w, (int)vid.width - x);
+	h = Q_MIN(h, (int)vid.height - y);
+
+	dest = vid.buffer + y * vid.rowbytes + x;
+	for (v = 0; v < h; v++, dest += vid.rowbytes)
+		for (u = 0; u < w; u++)
 			dest[u] = c;
 }
 
@@ -648,7 +717,7 @@ Draw_Fill_Align
 Fills a box of pixels with a single color
 =============
 */
-void Draw_Fill_Align (int x, int y, int w, int h, int c, align_t xa, align_t ya)
+void Draw_Fill_Align (int x, int y, int w, int h, align_t xa, align_t ya, int c)
 {
 	Draw_Fill_Impl(GetAlignedX(x, xa), GetAlignedY(y, ya), w * scr_scaling, h * scr_scaling, c);
 }
@@ -702,7 +771,10 @@ Call before beginning any disc IO.
 */
 void Draw_BeginDisc (void)
 {
-	D_BeginDirectRect (vid.width - 24, 0, draw_disc->data, 24, 24);
+	if (draw_disc)
+	{
+		D_BeginDirectRect (vid.width - 24, 0, draw_disc->data, 24, 24);
+	}
 }
 
 
@@ -728,8 +800,8 @@ void Draw_Crosshair(float x, float y)
 {
 	// TODO: add custom crosshair
 	Draw_Character_Impl (
-		scr_vrect.x + scr_vrect.width / 2 + (int)x - (CHAR_WIDTH / 2) * scr_scaling,
-		scr_vrect.y + scr_vrect.height / 2 + (int)y - (CHAR_HEIGHT / 2) * scr_scaling,
+		scr_vrect.x + scr_vrect.width / 2 + (int)x - (FONT_WIDTH / 2) * scr_scaling,
+		scr_vrect.y + scr_vrect.height / 2 + (int)y - (FONT_HEIGHT / 2) * scr_scaling,
 		'+');
 }
 

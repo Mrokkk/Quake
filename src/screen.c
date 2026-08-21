@@ -92,7 +92,7 @@ Called for important messages that should stay in the center of the screen
 for a few moments
 ==============
 */
-void SCR_CenterPrint (char *str)
+void SCR_CenterPrint (const char *str)
 {
 	Q_strlcpy (scr_centerstring, str, sizeof(scr_centerstring));
 	scr_centertime_off = scr_centertime.value;
@@ -195,7 +195,7 @@ void SCR_DrawFPS (void)
 {
 	static char s[32];
 	Q_snprintf(s, sizeof(s), "FPS %5.1f", vid_fps);
-	Draw_String_Align (-strlen(s) * (CHAR_WIDTH + 1), 0, RIGHT, TOP, s);
+	Draw_String_Align (-strlen(s) * (FONT_WIDTH + 1), 0, RIGHT, TOP, s);
 }
 
 //=============================================================================
@@ -728,15 +728,15 @@ void SCR_EndLoadingPlaque (void)
 
 //=============================================================================
 
-char	*scr_notifystring;
+const char	*scr_notifystring;
 qboolean	scr_drawdialog;
 
 void SCR_DrawNotifyString (void)
 {
-	char	*start;
-	int		l;
-	int		j;
-	int		x, y;
+	const char	*start;
+	int			l;
+	int			j;
+	int			x, y;
 
 	start = scr_notifystring;
 
@@ -772,7 +772,7 @@ Displays a text string in the center of the screen and waits for a Y or N
 keypress.  
 ==================
 */
-int SCR_ModalMessage (char *text)
+int SCR_ModalMessage (const char *text)
 {
 	if (cls.state == ca_dedicated)
 		return true;
