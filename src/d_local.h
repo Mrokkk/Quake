@@ -58,8 +58,6 @@ typedef struct sspan_s
 	int				u, v, count;
 } sspan_t;
 
-extern cvar_t	d_subdiv16;
-
 extern float	scale_for_mip;
 
 extern qboolean		d_roverwrapped;
@@ -73,9 +71,7 @@ extern float	d_sdivzorigin, d_tdivzorigin, d_ziorigin;
 extern fixed16_t	sadjust, tadjust;
 extern fixed16_t	bbextents, bbextentt;
 
-
 void D_DrawSpans8 (espan_t *pspans);
-void D_DrawSpans16 (espan_t *pspans);
 void D_DrawZSpans (espan_t *pspans);
 void Turbulent8 (espan_t *pspan);
 void D_SpriteDrawSpans (sspan_t *pspan);
@@ -84,13 +80,14 @@ void D_DrawSkyScans8 (espan_t *pspan);
 void D_DrawSkyScans16 (espan_t *pspan);
 
 void R_ShowSubDiv (void);
-extern void (*prealspandrawer)(void);
 extern surfcache_t	*D_CacheSurface (msurface_t *surface, int miplevel);
 
 extern int D_MipLevelForScale (float scale);
 
-extern short *d_pzbuffer;
-extern unsigned int d_zwidth;
+extern int			screenwidth;
+
+extern short		*d_pzbuffer;
+extern unsigned int	d_zwidth;
 
 extern int	*d_pscantable;
 extern int	d_scantable[MAXHEIGHT];
@@ -103,10 +100,9 @@ extern pixel_t	*d_viewbuffer;
 
 extern short	*zspantable[MAXHEIGHT];
 
+#define NUM_MIPS	4
 extern int		d_minmip;
-extern float	d_scalemip[3];
-
-extern void (*d_drawspans) (espan_t *pspan);
+extern float	d_scalemip[NUM_MIPS - 1];
 
 Q_END_DECLS
 

@@ -183,9 +183,6 @@ extern int		*pfrustum_indexes[4];
 extern int			ubasestep, errorterm, erroradjustup, erroradjustdown;
 extern int			vstartscan;
 
-extern fixed16_t	sadjust, tadjust;
-extern fixed16_t	bbextents, bbextentt;
-
 #define MAXBVERTINDEXES	1000	// new clipped vertices when clipping bmodels
 								//  to the world BSP
 extern mvertex_t	*r_ptverts, *r_ptvertsmax;
@@ -254,8 +251,6 @@ extern edge_t	*r_edges, *edge_p, *edge_max;
 
 extern	edge_t	*newedges[MAXHEIGHT];
 extern	edge_t	*removeedges[MAXHEIGHT];
-
-extern	int	screenwidth;
 
 // FIXME: make stack vars when debugging done
 extern	edge_t	edge_head;

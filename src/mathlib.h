@@ -64,13 +64,13 @@ float VectorNormalize (vec3_t v);		// returns vector length
 void VectorInverse (vec3_t v);
 void VectorScale (vec3_t in, vec_t scale, vec3_t out);
 
-#define _Clamp(min, max, value)	\
-	({							\
-		if (value < min)		\
-			value = min;		\
-		else if (value > max)	\
-			value = max;		\
-		value;					\
+#define _Clamp(min, max, value)				\
+	({										\
+		if (Q_UNLIKELY(value < min))		\
+			value = min;					\
+		else if (Q_UNLIKELY(value > max))	\
+			value = max;					\
+		value;								\
 	})
 
 static inline int Clampi(int min, int max, int value)
