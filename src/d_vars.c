@@ -31,14 +31,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // FIXME: make into one big structure, like cl or sv
 // FIXME: do separately for refresh engine and driver
 
-float	d_sdivzstepu, d_tdivzstepu, d_zistepu;
-float	d_sdivzstepv, d_tdivzstepv, d_zistepv;
-float	d_sdivzorigin, d_tdivzorigin, d_ziorigin;
+int				screenwidth;
 
-pixel_t			*cacheblock;
+fixed16_t		sadjust, tadjust;
+fixed16_t		bbextents, bbextentt;
+
+float			d_sdivzstepu, d_tdivzstepu, d_zistepu;
+float			d_sdivzstepv, d_tdivzstepv, d_zistepv;
+float			d_sdivzorigin, d_tdivzorigin, d_ziorigin;
+
 int				cachewidth;
+unsigned int	d_zwidth;
+pixel_t			*cacheblock;
 pixel_t			*d_viewbuffer;
 short			*d_pzbuffer;
-unsigned int	d_zwidth;
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

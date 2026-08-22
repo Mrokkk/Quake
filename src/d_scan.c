@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -30,8 +30,24 @@ fixed16_t		r_turb_s, r_turb_t, r_turb_sstep, r_turb_tstep;
 int				*r_turb_turb;
 int				r_turb_spancount;
 
-void D_DrawTurbulent8Span (void);
+/*
+=============
+D_DrawTurbulent8Span
+=============
+*/
+static void D_DrawTurbulent8Span (void)
+{
+	int		sturb, tturb;
 
+	do
+	{
+		sturb = ((r_turb_s + r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
+		tturb = ((r_turb_t + r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+		*r_turb_pdest++ = *(r_turb_pbase + (tturb<<6) + sturb);
+		r_turb_s += r_turb_sstep;
+		r_turb_t += r_turb_tstep;
+	} while (--r_turb_spancount > 0);
+}
 
 /*
 =============
@@ -62,7 +78,7 @@ void D_WarpScreen (void)
 	for (v=0 ; v<scr_vrect.height+AMP2*2 ; v++)
 	{
 		rowptr[v] = d_viewbuffer + (r_refdef.vrect.y * screenwidth) +
-				 (screenwidth * (int)((float)v * hratio * h / (h + AMP2 * 2)));
+				(screenwidth * (int)((float)v * hratio * h / (h + AMP2 * 2)));
 	}
 
 	for (u=0 ; u<scr_vrect.width+AMP2*2 ; u++)
@@ -91,25 +107,6 @@ void D_WarpScreen (void)
 
 /*
 =============
-D_DrawTurbulent8Span
-=============
-*/
-void D_DrawTurbulent8Span (void)
-{
-	int		sturb, tturb;
-
-	do
-	{
-		sturb = ((r_turb_s + r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
-		tturb = ((r_turb_t + r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
-		*r_turb_pdest++ = *(r_turb_pbase + (tturb<<6) + sturb);
-		r_turb_s += r_turb_sstep;
-		r_turb_t += r_turb_tstep;
-	} while (--r_turb_spancount > 0);
-}
-
-/*
-=============
 Turbulent8
 =============
 */
@@ -119,8 +116,8 @@ void Turbulent8 (espan_t *pspan)
 	fixed16_t		snext, tnext;
 	float			sdivz, tdivz, zi, z, du, dv, spancountminus1;
 	float			sdivz16stepu, tdivz16stepu, zi16stepu;
-	
-	r_turb_turb = sintable + ((int)(cl.time*SPEED)&(CYCLE-1));
+
+	r_turb_turb = sintable + ((int)(cl.time * SPEED) & (CYCLE - 1));
 
 	r_turb_sstep = 0;	// keep compiler happy
 	r_turb_tstep = 0;	// ditto
@@ -133,12 +130,11 @@ void Turbulent8 (espan_t *pspan)
 
 	do
 	{
-		r_turb_pdest = (unsigned char *)((byte *)d_viewbuffer +
-				(screenwidth * pspan->v) + pspan->u);
+		r_turb_pdest = (unsigned char *)((byte *)d_viewbuffer + (screenwidth * pspan->v) + pspan->u);
 
 		count = pspan->count;
 
-	// calculate the initial s/z, t/z, 1/z, s, and t and clamp
+		// calculate the initial s/z, t/z, 1/z, s, and t and clamp
 		du = (float)pspan->u;
 		dv = (float)pspan->v;
 
@@ -161,7 +157,7 @@ void Turbulent8 (espan_t *pspan)
 
 		do
 		{
-		// calculate s and t at the far end of the span
+			// calculate s and t at the far end of the span
 			if (count >= 16)
 				r_turb_spancount = 16;
 			else
@@ -171,8 +167,8 @@ void Turbulent8 (espan_t *pspan)
 
 			if (count)
 			{
-			// calculate s/z, t/z, zi->fixed s and t at far end of span,
-			// calculate s and t steps across span by shifting
+				// calculate s/z, t/z, zi->fixed s and t at far end of span,
+				// calculate s and t steps across span by shifting
 				sdivz += sdivz16stepu;
 				tdivz += tdivz16stepu;
 				zi += zi16stepu;
@@ -247,7 +243,7 @@ D_DrawSpans8
 */
 void D_DrawSpans8 (espan_t *pspan)
 {
-	int				count, spancount;
+	int				count, spancount, pwidth;
 	unsigned char	*pbase, *pdest;
 	fixed16_t		s, t, snext, tnext, sstep, tstep;
 	float			sdivz, tdivz, zi, z, du, dv, spancountminus1;
@@ -256,7 +252,8 @@ void D_DrawSpans8 (espan_t *pspan)
 	sstep = 0;	// keep compiler happy
 	tstep = 0;	// ditto
 
-	pbase = (unsigned char *)cacheblock;
+	pbase = cacheblock;
+	pwidth = cachewidth;
 
 	sdivz8stepu = d_sdivzstepu * 8;
 	tdivz8stepu = d_tdivzstepu * 8;
@@ -264,113 +261,104 @@ void D_DrawSpans8 (espan_t *pspan)
 
 	do
 	{
-		pdest = (unsigned char *)((byte *)d_viewbuffer +
-				(screenwidth * pspan->v) + pspan->u);
+		pdest = ((byte *)d_viewbuffer + (screenwidth * pspan->v) + pspan->u);
 
 		count = pspan->count;
 
-	// calculate the initial s/z, t/z, 1/z, s, and t and clamp
+		// calculate the initial s/z, t/z, 1/z, s, and t and clamp
 		du = (float)pspan->u;
 		dv = (float)pspan->v;
 
-		sdivz = d_sdivzorigin + dv*d_sdivzstepv + du*d_sdivzstepu;
-		tdivz = d_tdivzorigin + dv*d_tdivzstepv + du*d_tdivzstepu;
-		zi = d_ziorigin + dv*d_zistepv + du*d_zistepu;
+		sdivz = d_sdivzorigin + dv * d_sdivzstepv + du * d_sdivzstepu;
+		tdivz = d_tdivzorigin + dv * d_tdivzstepv + du * d_tdivzstepu;
+		zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
 		z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
 
-		s = (int)(sdivz * z) + sadjust;
-		if (s > bbextents)
-			s = bbextents;
-		else if (s < 0)
-			s = 0;
-
-		t = (int)(tdivz * z) + tadjust;
-		if (t > bbextentt)
-			t = bbextentt;
-		else if (t < 0)
-			t = 0;
+		s = Clampi(0, bbextents, (int)(sdivz * z) + sadjust);
+		t = Clampi(0, bbextentt, (int)(tdivz * z) + tadjust);
 
 		do
 		{
-		// calculate s and t at the far end of the span
-			if (count >= 8)
+			// calculate s and t at the far end of the span
+			if (Q_LIKELY(count >= 8))
 				spancount = 8;
 			else
 				spancount = count;
 
 			count -= spancount;
 
-			if (count)
+			if (Q_LIKELY(count))
 			{
-			// calculate s/z, t/z, zi->fixed s and t at far end of span,
-			// calculate s and t steps across span by shifting
+				// calculate s/z, t/z, zi->fixed s and t at far end of span,
+				// calculate s and t steps across span by shifting
 				sdivz += sdivz8stepu;
 				tdivz += tdivz8stepu;
 				zi += zi8stepu;
 				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
 
-				snext = (int)(sdivz * z) + sadjust;
-				if (snext > bbextents)
-					snext = bbextents;
-				else if (snext < 8)
-					snext = 8;	// prevent round-off error on <0 steps from
-								//  from causing overstepping & running off the
-								//  edge of the texture
+				// prevent round-off error on <0 steps from
+				//  from causing overstepping & running off the
+				//  edge of the texture
+				snext = Clampi(8, bbextents, (int)(sdivz * z) + sadjust);
 
-				tnext = (int)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
-					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8;	// guard against round-off error on <0 steps
+				// guard against round-off error on <0 steps
+				tnext = Clampi(8, bbextentt, (int)(tdivz * z) + tadjust);
 
 				sstep = (snext - s) >> 3;
 				tstep = (tnext - t) >> 3;
 			}
 			else
 			{
-			// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so
-			// can't step off polygon), clamp, calculate s and t steps across
-			// span by division, biasing steps low so we don't run off the
-			// texture
+				// calculate s/z, t/z, zi->fixed s and t at last pixel in span (so
+				// can't step off polygon), clamp, calculate s and t steps across
+				// span by division, biasing steps low so we don't run off the
+				// texture
 				spancountminus1 = (float)(spancount - 1);
 				sdivz += d_sdivzstepu * spancountminus1;
 				tdivz += d_tdivzstepu * spancountminus1;
 				zi += d_zistepu * spancountminus1;
 				z = (float)0x10000 / zi;	// prescale to 16.16 fixed-point
-				snext = (int)(sdivz * z) + sadjust;
-				if (snext > bbextents)
-					snext = bbextents;
-				else if (snext < 8)
-					snext = 8;	// prevent round-off error on <0 steps from
-								//  from causing overstepping & running off the
-								//  edge of the texture
 
-				tnext = (int)(tdivz * z) + tadjust;
-				if (tnext > bbextentt)
-					tnext = bbextentt;
-				else if (tnext < 8)
-					tnext = 8;	// guard against round-off error on <0 steps
+				// prevent round-off error on <0 steps from
+				//  from causing overstepping & running off the
+				//  edge of the texture
+				snext = Clampi(8, bbextents, (int)(sdivz * z) + sadjust);
 
-				if (spancount > 1)
+				// guard against round-off error on <0 steps
+				tnext = Clampi(8, bbextentt, (int)(tdivz * z) + tadjust);
+
+				if (Q_LIKELY(spancount > 1))
 				{
 					sstep = (snext - s) / (spancount - 1);
 					tstep = (tnext - t) / (spancount - 1);
 				}
 			}
 
-			do
+#define DRAW()											\
+	*pdest++ = pbase[(s >> 16) + (t >> 16) * pwidth];	\
+	s += sstep;											\
+	t += tstep;											\
+	Q_FALLTHROUGH
+
+			switch (spancount)
 			{
-				*pdest++ = *(pbase + (s >> 16) + (t >> 16) * cachewidth);
-				s += sstep;
-				t += tstep;
-			} while (--spancount > 0);
+				case 8:	DRAW();
+				case 7:	DRAW();
+				case 6:	DRAW();
+				case 5:	DRAW();
+				case 4:	DRAW();
+				case 3:	DRAW();
+				case 2:	DRAW();
+				case 1:	DRAW();
+				case 0:	break;
+			}
 
 			s = snext;
 			t = tnext;
-
-		} while (count > 0);
-
-	} while ((pspan = pspan->pnext) != NULL);
+		}
+		while (count > 0);
+	}
+	while ((pspan = pspan->pnext) != NULL);
 }
 
 /*
@@ -380,29 +368,32 @@ D_DrawZSpans
 */
 void D_DrawZSpans (espan_t *pspan)
 {
-	int				count, doublecount, izistep;
-	int				izi;
-	short			*pdest;
-	unsigned		ltemp;
-	double			zi;
-	float			du, dv;
+	int			count, doublecount, izistep;
+	int			izi;
+	short		*pdest, *pzbuffer;
+	unsigned	ltemp, zwidth;
+	double		zi;
+	float		du, dv;
 
-// FIXME: check for clamping/range problems
-// we count on FP exceptions being turned off to avoid range problems
+	zwidth = d_zwidth;
+	pzbuffer = d_pzbuffer;
+
+	// FIXME: check for clamping/range problems
+	// we count on FP exceptions being turned off to avoid range problems
 	izistep = (int)(d_zistepu * 0x8000 * 0x10000);
 
 	do
 	{
-		pdest = d_pzbuffer + (d_zwidth * pspan->v) + pspan->u;
+		pdest = pzbuffer + (zwidth * pspan->v) + pspan->u;
 
 		count = pspan->count;
 
-	// calculate the initial 1/z
+		// calculate the initial 1/z
 		du = (float)pspan->u;
 		dv = (float)pspan->v;
 
-		zi = d_ziorigin + dv*d_zistepv + du*d_zistepu;
-	// we count on FP exceptions being turned off to avoid range problems
+		zi = d_ziorigin + dv * d_zistepv + du * d_zistepu;
+		// we count on FP exceptions being turned off to avoid range problems
 		izi = (int)(zi * 0x8000 * 0x10000);
 
 		if ((long)pdest & 0x02)
@@ -412,7 +403,7 @@ void D_DrawZSpans (espan_t *pspan)
 			count--;
 		}
 
-		if ((doublecount = count >> 1) > 0)
+		if (Q_LIKELY((doublecount = count >> 1) > 0))
 		{
 			do
 			{
@@ -422,13 +413,16 @@ void D_DrawZSpans (espan_t *pspan)
 				izi += izistep;
 				*(int *)pdest = ltemp;
 				pdest += 2;
-			} while (--doublecount > 0);
+			}
+			while (--doublecount > 0);
 		}
 
 		if (count & 1)
+		{
 			*pdest = (short)(izi >> 16);
-
-	} while ((pspan = pspan->pnext) != NULL);
+		}
+	}
+	while ((pspan = pspan->pnext) != NULL);
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :
