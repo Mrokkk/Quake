@@ -18,8 +18,12 @@ else()
     set(ANALYZER OFF CACHE INTERNAL "")
 endif()
 
-if(NOT PLATFORM)
-    set(PLATFORM "X11" CACHE STRING "Used platform")
+if(NOT VIDEO)
+    set(VIDEO "X11" CACHE STRING "Used video driver")
+endif()
+
+if (NOT SOUND)
+    set(SOUND "NULL" CACHE STRING "Sound driver")
 endif()
 
 # General
@@ -133,24 +137,14 @@ add_executable(${PROJECT_NAME}
 
 )
 
-if(SOUND)
-    target_sources(${PROJECT_NAME} PUBLIC
-        src/snd_dma.c
-        src/snd_linux.c
-        src/snd_mem.c
-        src/snd_mix.c
-    )
-else()
-    target_sources(${PROJECT_NAME} PUBLIC src/snd_null.c)
-endif()
-
 if(SANITIZE)
     target_link_libraries(${PROJECT_NAME} PUBLIC asan ubsan)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC m)
 
-include(cmake/platform_${PLATFORM}.cmake)
+include(cmake/video_${VIDEO}.cmake)
+include(cmake/sound_${SOUND}.cmake)
 
 include(FindPkgConfig)
 pkg_check_modules(BACKTRACE libbacktrace)
@@ -172,7 +166,8 @@ message(STATUS "Enable profiling:              ${PROFILE}")
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     message(STATUS "Enable GCC's static analyzer:  ${ANALYZER}")
 endif()
-message(STATUS "Platform:                      ${PLATFORM}")
+message(STATUS "Video driver:                  ${VIDEO}")
+message(STATUS "Sound driver:                  ${SOUND}")
 message(STATUS "Install binary dir:            ${CMAKE_INSTALL_FULL_BINDIR}")
 message(STATUS "Install data dir:              ${CMAKE_INSTALL_FULL_DATADIR}")
 message(STATUS "#####################################################")

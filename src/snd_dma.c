@@ -108,7 +108,6 @@ void S_AmbientOn (void)
 	snd_ambient = true;
 }
 
-
 void S_SoundInfo_f(void)
 {
 	if (!sound_started || !shm)
@@ -116,17 +115,16 @@ void S_SoundInfo_f(void)
 		Con_Printf ("sound system not started\n");
 		return;
 	}
-	
-    Con_Printf("%5d stereo\n", shm->channels - 1);
-    Con_Printf("%5d samples\n", shm->samples);
-    Con_Printf("%5d samplepos\n", shm->samplepos);
-    Con_Printf("%5d samplebits\n", shm->samplebits);
-    Con_Printf("%5d submission_chunk\n", shm->submission_chunk);
-    Con_Printf("%5d speed\n", shm->speed);
-    Con_Printf("0x%x dma buffer\n", shm->buffer);
-	Con_Printf("%5d total_channels\n", total_channels);
-}
 
+	Con_Printf("%5d stereo\n", shm->channels - 1);
+	Con_Printf("%5d samples\n", shm->samples);
+	Con_Printf("%5d samplepos\n", shm->samplepos);
+	Con_Printf("%5d samplebits\n", shm->samplebits);
+	Con_Printf("%5d submission_chunk\n", shm->submission_chunk);
+	Con_Printf("%5d speed\n", shm->speed);
+	Con_Printf("%5d total_channels\n", total_channels);
+	Con_Printf("%p dma buffer\n", shm->buffer);
+}
 
 /*
 ================
@@ -147,9 +145,7 @@ void S_Startup (void)
 
 		if (!rc)
 		{
-#ifndef	_WIN32
-			Con_Printf("S_Startup: SNDDMA_Init failed.\n");
-#endif
+			Sys_DPrintf_f("SNDDMA_Init failed\n");
 			sound_started = 0;
 			return;
 		}
@@ -166,8 +162,7 @@ S_Init
 */
 void S_Init (void)
 {
-
-	Con_Printf("\nSound Initialization\n");
+	Sys_DPrintf_f("Sound Initialization\n");
 
 	if (COM_CheckParm("-nosound"))
 		return;
@@ -196,10 +191,8 @@ void S_Init (void)
 	if (host_parms.memsize < 0x800000)
 	{
 		Cvar_Set ("loadas8bit", "1");
-		Con_Printf ("loading all sounds as 8bit\n");
+		Sys_Printf_f ("loading all sounds as 8bit\n");
 	}
-
-
 
 	snd_initialized = true;
 
@@ -227,7 +220,10 @@ void S_Init (void)
 		shm->buffer = Hunk_AllocName(1<<16, "shmbuf");
 	}
 
-	Con_Printf ("Sound sampling rate: %i\n", shm->speed);
+    if (shm)
+    {
+        Sys_Printf_f ("Sound sampling rate: %i\n", shm->speed);
+    }
 
 	// provides a tick sound until washed clean
 
@@ -247,7 +243,6 @@ void S_Init (void)
 
 void S_Shutdown(void)
 {
-
 	if (!sound_started)
 		return;
 
@@ -262,7 +257,6 @@ void S_Shutdown(void)
 		SNDDMA_Shutdown();
 	}
 }
-
 
 // =======================================================================
 // Load a sound
@@ -398,10 +392,9 @@ SND_Spatialize
 void SND_Spatialize(channel_t *ch)
 {
     vec_t dot;
-    vec_t ldist, rdist, dist;
+    vec_t dist;
     vec_t lscale, rscale, scale;
     vec3_t source_vec;
-	sfx_t *snd;
 
 // anything coming from the view entity will allways be full volume
 	if (ch->entnum == cl.viewentity)
@@ -413,7 +406,6 @@ void SND_Spatialize(channel_t *ch)
 
 // calculate stereo seperation and distance attenuation
 
-	snd = ch->sfx;
 	VectorSubtract(ch->origin, listener_origin, source_vec);
 	
 	dist = VectorNormalize(source_vec) * ch->dist_mult;
@@ -441,7 +433,7 @@ void SND_Spatialize(channel_t *ch)
 	ch->leftvol = (int) (ch->master_vol * scale);
 	if (ch->leftvol < 0)
 		ch->leftvol = 0;
-}           
+}
 
 
 // =======================================================================
@@ -560,57 +552,20 @@ void S_ClearBuffer (void)
 {
 	int		clear;
 		
-#ifdef _WIN32
-	if (!sound_started || !shm || (!shm->buffer && !pDSBuf))
-#else
 	if (!sound_started || !shm || !shm->buffer)
-#endif
 		return;
+
+	SNDDMA_LockBuffer();
 
 	if (shm->samplebits == 8)
 		clear = 0x80;
 	else
 		clear = 0;
 
-#ifdef _WIN32
-	if (pDSBuf)
-	{
-		DWORD	dwSize;
-		DWORD	*pData;
-		int		reps;
-		HRESULT	hresult;
+	Q_memset(shm->buffer, clear, shm->samples * shm->samplebits/8);
 
-		reps = 0;
-
-		while ((hresult = pDSBuf->lpVtbl->Lock(pDSBuf, 0, gSndBufSize, &pData, &dwSize, NULL, NULL, 0)) != DS_OK)
-		{
-			if (hresult != DSERR_BUFFERLOST)
-			{
-				Con_Printf ("S_ClearBuffer: DS::Lock Sound Buffer Failed\n");
-				S_Shutdown ();
-				return;
-			}
-
-			if (++reps > 10000)
-			{
-				Con_Printf ("S_ClearBuffer: DS: couldn't restore buffer\n");
-				S_Shutdown ();
-				return;
-			}
-		}
-
-		Q_memset(pData, clear, shm->samples * shm->samplebits/8);
-
-		pDSBuf->lpVtbl->Unlock(pDSBuf, pData, dwSize, NULL, 0);
-	
-	}
-	else
-#endif
-	{
-		Q_memset(shm->buffer, clear, shm->samples * shm->samplebits/8);
-	}
+	SNDDMA_Submit();
 }
-
 
 /*
 =================
@@ -874,7 +829,7 @@ void S_Update_(void)
 // mix ahead of current position
 	endtime = soundtime + _snd_mixahead.value * shm->speed;
 	samps = shm->samples >> (shm->channels-1);
-	if (endtime - soundtime > samps)
+	if ((int)(endtime - soundtime) > samps)
 		endtime = soundtime + samps;
 
 #ifdef _WIN32
@@ -1015,3 +970,4 @@ void S_EndPrecaching (void)
 {
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :
