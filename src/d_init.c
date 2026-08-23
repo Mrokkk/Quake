@@ -36,6 +36,11 @@ static float	basemip[NUM_MIPS - 1] = {1.0, 0.5*0.8, 0.25*0.8};
 
 extern int		d_aflatcolor;
 
+static long		high_hunk_mark;
+static long		buffersize;
+static int		vid_surfcachesize;
+static void		*vid_surfcache;
+
 /*
 ===============
 D_Init
@@ -56,6 +61,34 @@ void D_Init (void)
 	r_aliasuvscale = 1.0;
 }
 
+/*
+===============
+D_AllocateBuffer
+===============
+*/
+void D_AllocateBuffer (void)
+{
+	if (d_pzbuffer)
+	{
+		D_FlushCaches();
+		Hunk_FreeToHighMark(high_hunk_mark);
+		d_pzbuffer = NULL;
+	}
+
+	high_hunk_mark = Hunk_HighMark();
+	vid_surfcachesize = D_SurfaceCacheForRes(vid.width, vid.height);
+
+	buffersize = vid.width * vid.height * sizeof(*d_pzbuffer) + vid_surfcachesize;
+
+	if (Q_UNLIKELY((d_pzbuffer = Hunk_HighAllocName(buffersize, "video")) == NULL))
+	{
+		Sys_Error("Not enough memory for buffer\n");
+	}
+
+	vid_surfcache = (byte *)d_pzbuffer + vid.width * vid.height * sizeof (*d_pzbuffer);
+
+	D_InitCaches(vid_surfcache, vid_surfcachesize);
+}
 
 /*
 ===============

@@ -157,6 +157,7 @@ void D_DrawZPoint (void);
 void D_EnableBackBufferAccess (void);
 void D_EndParticles (void);
 void D_Init (void);
+void D_AllocateBuffer (void);
 void D_ViewChanged (void);
 void D_SetupFrame (void);
 void D_StartParticles (void);

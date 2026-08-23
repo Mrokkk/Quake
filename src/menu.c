@@ -1320,9 +1320,16 @@ void M_Options_Draw (void)
 					min = o->slider.min;
 					max = o->slider.max;
 				}
-				r = o->slider.flags & slider_inverted
-					? (max - v) / (max - min)
-					: (v - min) / (max - min);
+				if (max == min)
+				{
+					r = 0;
+				}
+				else
+				{
+					r = o->slider.flags & slider_inverted
+						? (max - v) / (max - min)
+						: (v - min) / (max - min);
+				}
 				M_DrawSlider (188, y, r, v, o->slider.fmt);
 				break;
 		}
