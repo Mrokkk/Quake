@@ -107,6 +107,9 @@ void S_EndPrecaching (void);
 void S_PaintChannels(int endtime);
 void S_InitPaintChannels (void);
 
+void S_BlockSound (void);
+void S_UnblockSound (void);
+
 // picks a channel based on priorities, empty slots, number of channels
 channel_t *SND_PickChannel(int entnum, int entchannel);
 
@@ -121,6 +124,18 @@ int SNDDMA_GetDMAPos(void);
 
 // shutdown the DMA xfer.
 void SNDDMA_Shutdown(void);
+
+// blocks sound output upon window focus loss
+void SNDDMA_BlockSound(void);
+
+// unblocks the output upon window focus gain
+void SNDDMA_UnblockSound(void);
+
+// validates & locks the dma buffer
+void SNDDMA_LockBuffer(void);
+
+// unlocks the dma buffer / sends sound to the device
+void SNDDMA_Submit(void);
 
 // ====================================================================
 // User-setable variables
@@ -168,12 +183,6 @@ sfxcache_t *S_LoadSound (sfx_t *s);
 wavinfo_t GetWavinfo (char *name, byte *wav, int wavlength);
 
 void SND_InitScaletable (void);
-
-/* validates & locks the dma buffer */
-void SNDDMA_LockBuffer(void);
-
-/* unlocks the dma buffer / sends sound to the device */
-void SNDDMA_Submit(void);
 
 void S_AmbientOff (void);
 void S_AmbientOn (void);

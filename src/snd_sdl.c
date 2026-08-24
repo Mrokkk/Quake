@@ -195,4 +195,14 @@ void SNDDMA_LockBuffer(void)
 	SDL_UnlockAudioDevice(0);
 }
 
+void SNDDMA_BlockSound(void)
+{
+	SDL_UnlockAudioDevice(0);
+}
+
+void SNDDMA_UnblockSound(void)
+{
+	SDL_UnlockAudioDevice(1);
+}
+
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

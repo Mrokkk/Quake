@@ -970,4 +970,29 @@ void S_EndPrecaching (void)
 {
 }
 
+void S_BlockSound (void)
+{
+	if (sound_started && snd_blocked == 0)
+	{
+		snd_blocked  = 1;
+		S_ClearBuffer ();
+		if (shm)
+		{
+			SNDDMA_BlockSound();
+		}
+	}
+}
+
+void S_UnblockSound (void)
+{
+	if (!sound_started || !snd_blocked)
+		return;
+	if (snd_blocked == 1)
+	{
+		snd_blocked  = 0;
+		SNDDMA_UnblockSound();
+		S_ClearBuffer ();
+	}
+}
+
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

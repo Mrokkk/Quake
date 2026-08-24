@@ -102,4 +102,12 @@ void S_LocalSound (char *s)
 	Q_UNUSED(s);
 }
 
+void S_BlockSound (void)
+{
+}
+
+void S_UnblockSound (void)
+{
+}
+
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :
