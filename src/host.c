@@ -261,6 +261,9 @@ void Host_WriteConfiguration (void)
 		Key_WriteBindings (f);
 		Cvar_WriteVariables (f);
 
+		if (in_mlook.state & 1) fprintf (f, "+mlook\n");
+		fprintf (f, "vid_restart\n");
+
 		fclose (f);
 	}
 }
