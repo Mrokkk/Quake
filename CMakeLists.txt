@@ -95,6 +95,7 @@ add_executable(${PROJECT_NAME}
     src/draw.c
     src/host.c
     src/host_cmd.c
+    src/input.c
     src/keys.c
     src/mathlib.c
     src/menu.c

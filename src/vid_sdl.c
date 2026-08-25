@@ -330,35 +330,6 @@ void VID_DitherOff(void)
 	}
 }
 
-static qboolean	mouse_avail;
-static int		mouse_oldbuttonstate;
-static int		mouse_buttonstate;
-static float	mouse_x, mouse_y;
-static float	old_mouse_x, old_mouse_y;
-
-void IN_Init(void)
-{
-	if (COM_CheckParm("-nomouse"))
-	{
-		return;
-	}
-
-	mouse_x = mouse_y = 0.0;
-	mouse_avail = 1;
-}
-
-struct
-{
-	int key;
-	int down;
-} keyq[64];
-
-#define KEYQ_SIZE	Q_ARRLEN(keyq)
-#define KEYQ_MASK	(KEYQ_SIZE - 1)
-
-static int	keyq_head	= 0;
-static int	keyq_tail	= 0;
-
 static int ConvertKey(SDL_Keycode key)
 {
 	switch (key)
@@ -405,13 +376,6 @@ static int ConvertKey(SDL_Keycode key)
 	}
 }
 
-static inline void KeyqAdd(int key, qboolean down)
-{
-	keyq[keyq_head].key		= key;
-	keyq[keyq_head].down	= down;
-	keyq_head				= (keyq_head + 1) & KEYQ_MASK;
-}
-
 static inline int ConvertButton(int button)
 {
 	switch (button)
@@ -423,7 +387,7 @@ static inline int ConvertButton(int button)
 	}
 }
 
-static inline void GetEvents(void)
+void IN_ReadEvents(void)
 {
 	int			b;
 	SDL_Event	e;
@@ -439,22 +403,21 @@ static inline void GetEvents(void)
 			case SDL_KEYDOWN:
 			case SDL_KEYUP:
 				if ((b = ConvertKey(e.key.keysym.sym)))
-					KeyqAdd(b, e.type == SDL_KEYDOWN);
+					IN_AddKey(b, e.type == SDL_KEYDOWN);
 				break;
 
 			case SDL_MOUSEMOTION:
-				mouse_x = (float)e.motion.xrel;
-				mouse_y = (float)e.motion.yrel;
+				IN_AddMouseMove((float)e.motion.xrel, (float)e.motion.yrel);
 				break;
 
 			case SDL_MOUSEBUTTONDOWN:
 				if ((b = ConvertButton(e.button.button)) >= 0)
-					mouse_buttonstate |= 1 << b;
+					IN_AddMouseButton(b, true);
 				break;
 
 			case SDL_MOUSEBUTTONUP:
 				if ((b = ConvertButton(e.button.button)) >= 0)
-					mouse_buttonstate &= ~(1 << b);
+					IN_AddMouseButton(b, false);
 				break;
 
 			case SDL_WINDOWEVENT:
@@ -476,73 +439,6 @@ static inline void GetEvents(void)
 				}
 		}
 	}
-}
-
-void Sys_SendKeyEvents(void)
-{
-	int tail;
-	GetEvents();
-	while (keyq_head != keyq_tail)
-	{
-		tail = keyq_tail;
-		keyq_tail = (keyq_tail + 1) & KEYQ_MASK;
-		Key_Event(keyq[tail].key, keyq[tail].down);
-	}
-}
-
-void IN_Shutdown(void)
-{
-	mouse_avail = 0;
-}
-
-void IN_Commands(void)
-{
-	int i;
-
-	if (!mouse_avail) return;
-
-	for (i = 0; i < 3; i++)
-	{
-		if ((mouse_buttonstate & (1 << i)) && !(mouse_oldbuttonstate & (1 << i)))
-			Key_Event(K_MOUSE1 + i, true);
-
-		if (!(mouse_buttonstate & (1 << i)) && (mouse_oldbuttonstate & (1 << i)))
-			Key_Event(K_MOUSE1 + i, false);
-	}
-	mouse_oldbuttonstate = mouse_buttonstate;
-}
-
-void IN_Move(usercmd_t *cmd)
-{
-	if (!mouse_avail || cl.paused || key_dest != key_game)
-		return;
-
-	old_mouse_x = mouse_x;
-	old_mouse_y = mouse_y;
-
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
-
-	if ((in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1)))
-		cmd->sidemove += m_side.value * mouse_x;
-	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-
-	if (in_mlook.state & 1)
-		V_StopPitchDrift();
-
-	if ((in_mlook.state & 1) && !(in_strafe.state & 1))
-	{
-		cl.viewangles[PITCH] = Clampf(-70, 80, cl.viewangles[PITCH] + m_pitch.value * mouse_y);
-	}
-	else
-	{
-		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
-		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
-	}
-	mouse_x = mouse_y = 0.0;
 }
 
 typedef enum menu_type_s

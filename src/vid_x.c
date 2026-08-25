@@ -68,13 +68,6 @@ static Atom _NET_WM_STATE_FULLSCREEN;
 static Atom _NET_WM_STATE_FOCUSED;
 static Atom _NET_WM_STATE_HIDDEN;
 
-static qboolean	mouse_avail;
-static int		mouse_buttons = 3;
-static int		mouse_oldbuttonstate;
-static int		mouse_buttonstate;
-static float	mouse_x, mouse_y;
-static float	old_mouse_x, old_mouse_y;
-
 enum
 {
 	WINDOW_MAXIMIZED	= 1 << 0,
@@ -791,18 +784,6 @@ static int ConvertKey(XKeyEvent *ev)
 	}
 }
 
-struct
-{
-	int key;
-	int down;
-} keyq[64];
-
-#define KEYQ_SIZE	Q_ARRLEN(keyq)
-#define KEYQ_MASK	(KEYQ_SIZE - 1)
-
-static int	keyq_head	= 0;
-static int	keyq_tail	= 0;
-
 static int		config_notify = 0;
 static unsigned	config_notify_width;
 static unsigned	config_notify_height;
@@ -873,13 +854,6 @@ static void HandleWindowStateChange(void)
 	}
 }
 
-static inline void KeyqAdd(int key, qboolean down)
-{
-	keyq[keyq_head].key		= key;
-	keyq[keyq_head].down	= down;
-	keyq_head				= (keyq_head + 1) & KEYQ_MASK;
-}
-
 static inline int ConvertButton(int button)
 {
 	switch (button)
@@ -900,29 +874,29 @@ static void GetEvent(void)
 	switch (x_event.type)
 	{
 		case KeyPress:
-			KeyqAdd(ConvertKey(&x_event.xkey), true);
+			IN_AddKey(ConvertKey(&x_event.xkey), true);
 			break;
 
 		case KeyRelease:
-			KeyqAdd(ConvertKey(&x_event.xkey), false);
+			IN_AddKey(ConvertKey(&x_event.xkey), false);
 			break;
 
 		case MotionNotify:
-			mouse_x = (float)((int)x_event.xmotion.x - (int)(vid.width / 2));
-			mouse_y = (float)((int)x_event.xmotion.y - (int)(vid.height / 2));
-
+			IN_AddMouseMove(
+				(float)((int)x_event.xmotion.x - (int)(vid.width / 2)),
+				(float)((int)x_event.xmotion.y - (int)(vid.height / 2)));
 			// move the mouse to the window center again
 			ResetCursorPosition();
 			break;
 
 		case ButtonPress:
 			if ((b = ConvertButton(x_event.xbutton.button)) >= 0)
-				mouse_buttonstate |= 1 << b;
+				IN_AddMouseButton(b, true);
 			break;
 
 		case ButtonRelease:
 			if ((b = ConvertButton(x_event.xbutton.button)) >= 0)
-				mouse_buttonstate &= ~(1 << b);
+				IN_AddMouseButton(b, false);
 			break;
 
 		case ConfigureNotify:
@@ -1161,89 +1135,9 @@ void VID_DitherOff(void)
 	}
 }
 
-void Sys_SendKeyEvents(void)
+void IN_ReadEvents(void)
 {
-	int tail;
-	// get events from x server
-	if (x_disp)
-	{
-		while (XPending(x_disp)) GetEvent();
-		while (keyq_head != keyq_tail)
-		{
-			tail = keyq_tail;
-			keyq_tail = (keyq_tail + 1) & KEYQ_MASK;
-			Key_Event(keyq[tail].key, keyq[tail].down);
-		}
-	}
-}
-
-void IN_Init(void)
-{
-	if (COM_CheckParm("-nomouse"))
-	{
-		return;
-	}
-
-	mouse_x = mouse_y = 0.0;
-	mouse_avail = 1;
-}
-
-void IN_Shutdown(void)
-{
-	mouse_avail = 0;
-}
-
-void IN_Commands(void)
-{
-	int i;
-
-	if (!mouse_avail) return;
-
-	for (i = 0; i < mouse_buttons; i++)
-	{
-		if ((mouse_buttonstate & (1 << i)) && !(mouse_oldbuttonstate & (1 << i)))
-			Key_Event(K_MOUSE1 + i, true);
-
-		if (!(mouse_buttonstate & (1 << i)) && (mouse_oldbuttonstate & (1 << i)))
-			Key_Event(K_MOUSE1 + i, false);
-	}
-	mouse_oldbuttonstate = mouse_buttonstate;
-}
-
-void IN_Move(usercmd_t *cmd)
-{
-	if (!mouse_avail || cl.paused || key_dest != key_game)
-		return;
-
-	old_mouse_x = mouse_x;
-	old_mouse_y = mouse_y;
-
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
-
-	if ((in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1)))
-		cmd->sidemove += m_side.value * mouse_x;
-	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	if (in_mlook.state & 1)
-		V_StopPitchDrift();
-
-	if ((in_mlook.state & 1) && !(in_strafe.state & 1))
-	{
-		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
-		if (cl.viewangles[PITCH] > 80)
-			cl.viewangles[PITCH] = 80;
-		if (cl.viewangles[PITCH] < -70)
-			cl.viewangles[PITCH] = -70;
-	}
-	else
-	{
-		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
-		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
-	}
-	mouse_x = mouse_y = 0.0;
+	while (XPending(x_disp)) GetEvent();
 }
 
 typedef enum menu_type_s
