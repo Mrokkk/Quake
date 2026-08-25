@@ -1177,18 +1177,6 @@ void Sys_SendKeyEvents(void)
 	}
 }
 
-void D_BeginDirectRect(int x, int y, byte *pbitmap, int width, int height)
-{
-	// direct drawing of the "accessing disk" icon isn't supported under Linux
-	Q_UNUSED(x && y && pbitmap && width && height);
-}
-
-void D_EndDirectRect(int x, int y, int width, int height)
-{
-	// direct drawing of the "accessing disk" icon isn't supported under Linux
-	Q_UNUSED(x && y && width && height);
-}
-
 void IN_Init(void)
 {
 	if (COM_CheckParm("-nomouse"))

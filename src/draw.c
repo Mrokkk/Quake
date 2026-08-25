@@ -771,10 +771,6 @@ Call before beginning any disc IO.
 */
 void Draw_BeginDisc (void)
 {
-	if (draw_disc)
-	{
-		D_BeginDirectRect (vid.width - 24, 0, draw_disc->data, 24, 24);
-	}
 }
 
 
@@ -788,7 +784,6 @@ Call after completing any disc IO
 */
 void Draw_EndDisc (void)
 {
-	D_EndDirectRect (vid.width - 24, 0, 24, 24);
 }
 
 /*

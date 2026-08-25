@@ -244,6 +244,11 @@ static void SCR_CalcRefdef (void)
 
 	scr_scaling = Q_MIN(_scr_scaling.value, scr_maxscaling);
 
+	if (scr_scaling < 1)
+	{
+		scr_scaling = 1;
+	}
+
 	Cvar_SetValue("scr_scaling", scr_scaling);
 
 	scr_xoff = (vid.width - scr_scaling * SCREEN_WIDTH) / 2;
