@@ -80,13 +80,8 @@ static int window_state;
 static qboolean vid_changed;
 static byte current_palette[768];
 
-static void VID_Menu_Draw(void);
-static void VID_Menu_Key(int key);
-
-static menu_t vid_menu = {
-	.draw	= &VID_Menu_Draw,
-	.key	= &VID_Menu_Key,
-};
+static void VID_RegisterMenu(void);
+static void VID_Menu_Enter(void);
 
 #define COMMON_XINPUT_FLAGS \
 	(StructureNotifyMask \
@@ -422,7 +417,7 @@ void VID_Init(unsigned char *palette)
 	int			template_mask;
 	int			window_state = 0;
 
-	M_RegisterVideoMenu(&vid_menu);
+	VID_RegisterMenu();
 
 	Cvar_RegisterVariable(&vid_vsync);
 	Cvar_RegisterVariable(&vid_fullscreen);
@@ -1140,149 +1135,52 @@ void IN_ReadEvents(void)
 	while (XPending(x_disp)) GetEvent();
 }
 
-typedef enum menu_type_s
-{
-	menu_type_value,
-	menu_type_onoff,
-} menu_type_t;
-
-typedef struct vid_option_s
-{
-	menu_type_t	type;
-	union
-	{
-		cvar_t*	cvar;
-		void	(*func)(void);
-	};
-	const char	*name;
-	int			min, max;
-} vid_option_t;
-
-static unsigned vid_opt_current;
-
-static vid_option_t vid_opts[] = {
-	{
-		.type	= menu_type_onoff,
-		.cvar	= &vid_fullscreen,
-		.name	= "Fullscreen",
+static option_t options[] = {
+	(option_t){
+		.type		= option_onoff,
+		.name		= "Fullscreen",
+		.onoff		= {
+			.cvar	= &vid_fullscreen,
+		}
 	},
-	{
-		.type	= menu_type_onoff,
-		.cvar	= &vid_vsync,
+	(option_t){
+		.type	= option_onoff,
 		.name	= "V-Sync",
+		.onoff	= {
+			.cvar	= &vid_vsync,
+		}
 	},
-	{
-		.type	= menu_type_value,
-		.cvar	= &vid_refreshrate,
-		.name	= "Refresh rate",
-		.min	= 20,
-		.max	= 120,
-	},
+	(option_t){
+		.type		= option_slider,
+		.name		= "Refresh rate",
+		.slider		= {
+			.cvar	= &vid_refreshrate,
+			.fmt	= "%0.0f",
+			.flags	= 0,
+			.min	= 20,
+			.max	= 120,
+			.step	= 5,
+		},
+	}
 };
 
-static void VID_Menu_Draw(void)
+static menu_t vid_menu = {
+	.cursor			= 0,
+	.options_count	= Q_ARRLEN(options),
+	.options		= options,
+	.title			= "Video Options",
+	.enter			= NULL,
+	.parent			= NULL,
+};
+
+static void VID_RegisterMenu(void)
 {
-	size_t			i, y;
-	const char		*title;
-	vid_option_t	*o;
-
-	y = 4;
-
-	M_DrawPlaque();
-	M_DrawMenuHeader("gfx/p_option.lmp");
-
-	y += 28;
-
-	title = "Video Options";
-	M_PrintWhite((SCREEN_WIDTH - FONT_WIDTH * strlen(title)) / 2, y, title);
-
-	y += 2 * FONT_WIDTH;
-
-	for (i = 0; i < Q_ARRLEN(vid_opts); ++i, y += FONT_WIDTH)
+	size_t i;
+	for (i = 0; i < Q_ARRLEN(options); ++i)
 	{
-		o = &vid_opts[i];
-		M_Print (16 + 18 * FONT_WIDTH - strlen(o->name) * FONT_WIDTH, y, o->name);
-		switch (o->type)
-		{
-			case menu_type_onoff:
-				M_DrawCheckbox(188, y, !!o->cvar->value);
-				break;
-			case menu_type_value:
-				M_Print(188, y, va("%u", (unsigned)o->cvar->value));
-				break;
-		}
-
-		if (vid_opt_current == i)
-		{
-			M_DrawMenuCursor(168, y);
-		}
+		options[i].namelen = strlen(options[i].name);
 	}
-}
-
-static void VID_Menu_Key(int key)
-{
-	int				value;
-	vid_option_t	*o;
-
-	o = &vid_opts[vid_opt_current];
-
-	switch (key)
-	{
-		case K_ESCAPE:
-			S_LocalSound ("misc/menu1.wav");
-			M_Menu_Options_f ();
-			break;
-
-		case K_LEFTARROW:
-		case K_RIGHTARROW:
-			S_LocalSound ("misc/menu3.wav");
-			switch (o->type)
-			{
-				case menu_type_onoff:
-					Cvar_SetValue(o->cvar->name, !o->cvar->value);
-					break;
-
-				case menu_type_value:
-					value = o->cvar->value + (key == K_LEFTARROW ? -5 : 5);
-					if (value > o->max)
-					{
-						value = o->max;
-					}
-					else if (value < o->min)
-					{
-						value = o->min;
-					}
-					Cvar_SetValue(o->cvar->name, value);
-					break;
-			}
-			break;
-
-		case K_DOWNARROW:
-		case K_UPARROW:
-			S_LocalSound ("misc/menu1.wav");
-			value = vid_opt_current + (key == K_DOWNARROW ? 1 : -1);
-			if (value < 0)
-			{
-				value = Q_ARRLEN(vid_opts) - 1;
-			}
-			else if (value >= (int)Q_ARRLEN(vid_opts))
-			{
-				value = 0;
-			}
-			vid_opt_current = value;
-			break;
-
-		case K_ENTER:
-			switch (o->type)
-			{
-				case menu_type_onoff:
-					Cvar_SetValue(o->cvar->name, !o->cvar->value);
-					break;
-
-				default:
-					break;
-			}
-	}
+	M_RegisterVideoMenu(&vid_menu);
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

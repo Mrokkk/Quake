@@ -55,16 +55,98 @@ typedef enum m_state_e
 	m_slist
 } m_state_t;
 
-typedef struct menu_s
-{
-	void (*draw)(void);
-	void (*key)(int key);
-} menu_t;
-
 extern m_state_t m_state;
 extern m_state_t m_return_state;
 extern qboolean m_return_onerror;
 extern char m_return_reason[32];
+
+enum
+{
+	option_onoff,
+	option_slider,
+	option_button,
+	option_values,
+};
+
+enum
+{
+	action_none,
+	action_callback,
+	action_cmd,
+};
+
+enum
+{
+	slider_dynamic_range	= (1 << 0),
+	slider_inverted			= (1 << 1),
+};
+
+typedef struct
+{
+	cvar_t *cvar;
+} onoff_t;
+
+typedef struct
+{
+	cvar_t			*cvar;
+	const char		*fmt;
+	int				flags;
+	union
+	{
+		struct
+		{
+			float	min, max, step;
+		};
+		void		(*read)(float *min, float *max, float *step);
+	};
+} slider_t;
+
+typedef struct
+{
+	int				action;
+	union
+	{
+		void		(*callback)(void);
+		const char	*cmd;
+	};
+} button_t;
+
+typedef struct
+{
+	const char	*name;
+	float		value;
+} m_value_t;
+
+typedef struct
+{
+	cvar_t		*cvar;
+	unsigned	count;
+	m_value_t	*data;
+} values_t;
+
+typedef struct option_s
+{
+	int				type;
+	unsigned		namelen;
+	const char		*name;
+	union
+	{
+		onoff_t		onoff;
+		slider_t	slider;
+		button_t	button;
+		values_t	values;
+	};
+} option_t;
+
+typedef struct menu_s
+{
+	int				cursor;
+	unsigned		options_count;
+	const char		*title;
+	option_t		*options;
+	void			(*enter)(void);
+	struct menu_s	*parent;
+} menu_t;
 
 //
 // menus

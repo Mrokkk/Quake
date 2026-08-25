@@ -25,10 +25,16 @@
 
 typedef uint32_t pixel32_t;
 
-static cvar_t	vid_vsync = {"vid_vsync", "1", true};
-static cvar_t	vid_fullscreen = {"vid_fullscreen", "0", true};
+static cvar_t	vid_vsync = {"vid_vsync", "1", true, false, 0};
+static cvar_t	vid_fullscreen = {"vid_fullscreen", "0", true, false, 0};
 static cvar_t	vid_width = {"vid_width", "960", true, false, 960};
 static cvar_t	vid_height = {"vid_height", "600", true, false, 600};
+
+static cvar_t	ui_vid_mode = {"ui_vid_mode", "-1", false, false, -1};
+static cvar_t	ui_vid_width = {"ui_vid_width", "960", false, false, 960};
+static cvar_t	ui_vid_height = {"ui_vid_height", "600", false, false, 600};
+static cvar_t	ui_vid_vsync = {"ui_vid_vsync", "1", false, false, 1};
+static cvar_t	ui_vid_fullscreen = {"ui_vid_fullscreen", "0", false, false, 0};
 
 static qboolean	initialized = false;
 static qboolean	vsync = true;
@@ -51,14 +57,9 @@ static uint64_t			frame;
 
 unsigned short d_8to16table[256];
 
+static void VID_RegisterMenu(void);
 static void VID_Restart(void);
-static void VID_Menu_Draw(void);
-static void VID_Menu_Key(int key);
-
-static menu_t vid_menu = {
-	.draw	= &VID_Menu_Draw,
-	.key	= &VID_Menu_Key,
-};
+static void VID_Menu_Enter(void);
 
 static void RecalculateDestRect(void)
 {
@@ -83,12 +84,18 @@ void VID_Init(unsigned char *palette)
 {
 	Uint32	flags = 0;
 
-	M_RegisterVideoMenu(&vid_menu);
+	VID_RegisterMenu();
 
 	Cvar_RegisterVariable(&vid_vsync);
 	Cvar_RegisterVariable(&vid_fullscreen);
 	Cvar_RegisterVariable(&vid_width);
 	Cvar_RegisterVariable(&vid_height);
+
+	Cvar_RegisterVariable(&ui_vid_mode);
+	Cvar_RegisterVariable(&ui_vid_width);
+	Cvar_RegisterVariable(&ui_vid_height);
+	Cvar_RegisterVariable(&ui_vid_vsync);
+	Cvar_RegisterVariable(&ui_vid_fullscreen);
 
 	Cmd_AddCommand("vid_restart", &VID_Restart);
 
@@ -441,64 +448,13 @@ void IN_ReadEvents(void)
 	}
 }
 
-typedef enum menu_type_s
-{
-	menu_type_onoff,
-	menu_type_button_cmd,
-	menu_type_mode,
-} menu_type_t;
-
-typedef struct vid_option_s
-{
-	menu_type_t	type;
-	union
-	{
-		qboolean	*value;
-		void		(*func)(void);
-	};
-	const char	*name;
-	int			min, max;
-} vid_option_t;
-
 typedef struct vid_mode_s
 {
-	unsigned	width, height;
+	unsigned short	width, height;
+	char			name[16];
 } vid_mode_t;
 
-#define UNSET_MODE	-1
-#define CUSTOM_MODE	-2
-
-static unsigned	vid_opt_current;
-static int		current_mode = UNSET_MODE;
-static int		custom_width = -1;
-static int		custom_height = -1;
-static qboolean	temp_fullscreen;
-static qboolean	temp_vsync;
-
 static void VID_ApplyChanges(void);
-
-static vid_option_t vid_opts[] = {
-	{
-		.type	= menu_type_mode,
-		.value	= NULL,
-		.name	= "Resolution",
-	},
-	{
-		.type	= menu_type_onoff,
-		.value	= &temp_fullscreen,
-		.name	= "Fullscreen",
-	},
-	{
-		.type	= menu_type_onoff,
-		.value	= &temp_vsync,
-		.name	= "V-Sync",
-	},
-	{
-		.type	= menu_type_button_cmd,
-		.func	= &VID_ApplyChanges,
-		.name	= "Apply changes",
-	},
-};
 
 #define ASPECT_16_9		0.5625f
 #define ASPECT_16_10	0.625f
@@ -520,191 +476,117 @@ static vid_mode_t vid_modes[] = {
 	MODES_FOR_WIDTH(1440),
 	MODES_FOR_WIDTH(1920),
 	MODES_FOR_WIDTH(2560),
+	{0, 0}
 };
 
-static void VID_ApplyChanges(void)
+static m_value_t m_modes[Q_ARRLEN(vid_modes)];
+
+#define CUSTOM_MODE	(Q_ARRLEN(vid_modes) - 1)
+
+static option_t options[] = {
+	(option_t){
+		.type			= option_values,
+		.name			= "Resolution",
+		.values			= {
+			.cvar		= &ui_vid_mode,
+			.count		= Q_ARRLEN(m_modes),
+			.data		= m_modes,
+		}
+	},
+	(option_t){
+		.type			= option_onoff,
+		.name			= "Fullscreen",
+		.onoff			= {
+			.cvar		= &ui_vid_fullscreen,
+		}
+	},
+	(option_t){
+		.type			= option_onoff,
+		.name			= "V-Sync",
+		.onoff			= {
+			.cvar		= &ui_vid_vsync,
+		}
+	},
+	(option_t){
+		.type			= option_button,
+		.name			= "Apply changes",
+		.button			= {
+			.action		= action_callback,
+			.callback	= &VID_ApplyChanges,
+		}
+	},
+};
+
+static menu_t vid_menu = {
+	.cursor			= 0,
+	.options_count	= Q_ARRLEN(options),
+	.options		= options,
+	.title			= "Video Options",
+	.enter			= &VID_Menu_Enter,
+	.parent			= NULL,
+};
+
+static void VID_RegisterMenu(void)
 {
-	if (current_mode == -2)
+	size_t i;
+	for (i = 0; i < Q_ARRLEN(options); ++i)
 	{
-		Cvar_SetValue("vid_width", custom_width);
-		Cvar_SetValue("vid_height", custom_height);
+		options[i].namelen = strlen(options[i].name);
+	}
+	M_RegisterVideoMenu(&vid_menu);
+}
+
+static void VID_Menu_Enter(void)
+{
+	int		current_mode = CUSTOM_MODE;
+	size_t	i;
+
+	for (i = 0; i < Q_ARRLEN(vid_modes) - 1; ++i)
+	{
+		if (vid_modes[i].width == vid.width && vid_modes[i].height == vid.height)
+		{
+			current_mode = i;
+		}
+		Q_snprintf(vid_modes[i].name, sizeof(vid_modes->name), "%ux%u", vid_modes[i].width, vid_modes[i].height);
+		m_modes[i].name = vid_modes[i].name;
+		m_modes[i].value = i;
+	}
+
+	if (current_mode == CUSTOM_MODE)
+	{
+		vid_modes[current_mode].width = vid.width;
+		vid_modes[current_mode].height = vid.height;
+		Q_snprintf(vid_modes[current_mode].name, sizeof(vid_modes->name), "Custom %ux%u", vid.width, vid.height);
+		m_modes[current_mode].name = vid_modes[current_mode].name;
+		options[0].values.count = Q_ARRLEN(vid_modes);
 	}
 	else
 	{
-		Cvar_SetValue("vid_width", vid_modes[current_mode].width);
-		Cvar_SetValue("vid_height", vid_modes[current_mode].height);
+		options[0].values.count = Q_ARRLEN(vid_modes) - 1;
 	}
-	Cvar_SetValue("vid_fullscreen", temp_fullscreen);
-	Cvar_SetValue("vid_vsync", temp_vsync);
+
+	Cvar_SetValue("ui_vid_mode", current_mode);
+	Cvar_SetValue("ui_vid_width", vid_width.value);
+	Cvar_SetValue("ui_vid_height", vid_height.value);
+	Cvar_SetValue("ui_vid_fullscreen", vid_fullscreen.value);
+	Cvar_SetValue("ui_vid_vsync", vid_vsync.value);
+}
+
+static void VID_ApplyChanges(void)
+{
+	int mode;
+
+	mode = (int)ui_vid_mode.value;
+
+	if (mode >= 0 && mode < (int)Q_ARRLEN(vid_modes))
+	{
+		Cvar_SetValue("vid_width", vid_modes[mode].width);
+		Cvar_SetValue("vid_height", vid_modes[mode].height);
+	}
+
+	Cvar_SetValue("vid_fullscreen", ui_vid_fullscreen.value);
+	Cvar_SetValue("vid_vsync", ui_vid_vsync.value);
 	Cbuf_AddText("vid_restart\n");
-	current_mode = UNSET_MODE;
-}
-
-static void VID_Menu_Draw(void)
-{
-	size_t			i, y;
-	const char		*title;
-	vid_option_t	*o;
-
-	y = 4;
-
-	M_DrawPlaque();
-	M_DrawMenuHeader("gfx/p_option.lmp");
-
-	y += 28;
-
-	title = "Video Options";
-	M_PrintWhite((SCREEN_WIDTH - FONT_WIDTH * strlen(title)) / 2, y, title);
-
-	y += 2 * FONT_WIDTH;
-
-	if (Q_UNLIKELY(current_mode == UNSET_MODE))
-	{
-		for (i = 0; i < Q_ARRLEN(vid_modes); ++i)
-		{
-			if (vid_modes[i].width == vid.width && vid_modes[i].height == vid.height)
-			{
-				current_mode = i;
-				break;
-			}
-		}
-		if (current_mode == UNSET_MODE)
-		{
-			current_mode = CUSTOM_MODE;
-			custom_width = vid.width;
-			custom_height = vid.height;
-		}
-
-		temp_fullscreen = fullscreen;
-		temp_vsync = vsync;
-	}
-
-	for (i = 0; i < Q_ARRLEN(vid_opts); ++i, y += FONT_WIDTH)
-	{
-		o = &vid_opts[i];
-		M_Print(16 + 18 * FONT_WIDTH - strlen(o->name) * FONT_WIDTH, y, o->name);
-		switch (o->type)
-		{
-			case menu_type_onoff:
-				M_DrawCheckbox(188, y, !!*o->value);
-				break;
-			case menu_type_button_cmd:
-				break;
-			case menu_type_mode:
-				if (current_mode == CUSTOM_MODE)
-				{
-					M_Print(188, y, va("Custom (%ux%u)", custom_width, custom_height));
-				}
-				else
-				{
-					M_Print(188, y, va("%ux%u", vid_modes[current_mode].width, vid_modes[current_mode].height));
-				}
-				break;
-		}
-
-		if (vid_opt_current == i)
-		{
-			M_DrawMenuCursor(168, y);
-		}
-	}
-}
-
-static void VID_Menu_Key(int key)
-{
-	int				value;
-	vid_option_t	*o;
-
-	o = &vid_opts[vid_opt_current];
-
-	switch (key)
-	{
-		case K_ESCAPE:
-			S_LocalSound ("misc/menu1.wav");
-			M_Menu_Options_f ();
-			break;
-
-		case K_LEFTARROW:
-		case K_RIGHTARROW:
-			S_LocalSound ("misc/menu3.wav");
-			switch (o->type)
-			{
-				case menu_type_onoff:
-					*o->value = !*o->value;
-					break;
-
-				case menu_type_button_cmd:
-					break;
-
-				case menu_type_mode:
-					value = current_mode;
-					if (value == -2)
-					{
-						value = key == K_LEFTARROW ? Q_ARRLEN(vid_modes) - 1 : 0;
-					}
-					else
-					{
-						value = value + (key == K_LEFTARROW ? -1 : 1);
-						if (value < 0)
-						{
-							if (custom_width != -1)
-							{
-								value = CUSTOM_MODE;
-							}
-							else
-							{
-								value = Q_ARRLEN(vid_modes) - 1;
-							}
-						}
-						else if (value >= (int)Q_ARRLEN(vid_modes))
-						{
-							if (custom_width != -1)
-							{
-								value = CUSTOM_MODE;
-							}
-							else
-							{
-								value = 0;
-							}
-						}
-					}
-					current_mode = value;
-					break;
-			}
-			break;
-
-		case K_DOWNARROW:
-		case K_UPARROW:
-			S_LocalSound ("misc/menu1.wav");
-			value = vid_opt_current + (key == K_DOWNARROW ? 1 : -1);
-			if (value < 0)
-			{
-				value = Q_ARRLEN(vid_opts) - 1;
-			}
-			else if (value >= (int)Q_ARRLEN(vid_opts))
-			{
-				value = 0;
-			}
-			vid_opt_current = value;
-			break;
-
-		case K_ENTER:
-			switch (o->type)
-			{
-				case menu_type_onoff:
-					*o->value = !*o->value;
-					break;
-
-				case menu_type_button_cmd:
-					o->func();
-					break;
-
-				case menu_type_mode:
-					break;
-
-				default:
-					break;
-			}
-	}
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

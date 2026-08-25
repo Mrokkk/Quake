@@ -23,8 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "winquake.h"
 #endif
 
-static menu_t *video_menu;
-
 m_state_t m_state;
 
 void M_Menu_Main_f (void);
@@ -53,9 +51,8 @@ void M_Main_Draw (void);
 	void M_MultiPlayer_Draw (void);
 		void M_Setup_Draw (void);
 		void M_Net_Draw (void);
-	void M_Options_Draw (void);
+	void M_Options_Draw (menu_t *menu);
 		void M_Keys_Draw (void);
-		void M_Video_Draw (void);
 	void M_Help_Draw (void);
 	void M_Quit_Draw (void);
 void M_SerialConfig_Draw (void);
@@ -72,9 +69,8 @@ void M_Main_Key (int key);
 	void M_MultiPlayer_Key (int key);
 		void M_Setup_Key (int key);
 		void M_Net_Key (int key);
-	void M_Options_Key (int key);
+	void M_Options_Key (menu_t *menu, int k);
 		void M_Keys_Key (int key);
-		void M_Video_Key (int key);
 	void M_Help_Key (int key);
 	void M_Quit_Key (int key);
 void M_SerialConfig_Key (int key);
@@ -83,6 +79,151 @@ void M_LanConfig_Key (int key);
 void M_GameOptions_Key (int key);
 void M_Search_Key (int key);
 void M_ServerList_Key (int key);
+
+static void M_ReadScale (float *min, float *max, float *step);
+
+static menu_t *video_menu;
+
+static option_t options[] = {
+	{
+		.type = option_button,
+		.name = "Controls",
+		.button = {
+			.action = action_callback,
+			.callback = &M_Menu_Keys_f,
+		},
+	},
+	{
+		.type = option_button,
+		.name = "Reset config",
+		.button = {
+			.action = action_cmd,
+			.cmd = "exec default.cfg\n",
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Screen size",
+		.slider = {
+			.cvar = &scr_viewsize,
+			.fmt = "%0.0f",
+			.min = 30,
+			.max = 120,
+			.step = 10,
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "UI Scale",
+		.slider = {
+			.cvar = &_scr_scaling,
+			.fmt = "%0.0f",
+			.flags = slider_dynamic_range,
+			.read = &M_ReadScale
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Brightness",
+		.slider = {
+			.cvar = &v_gamma,
+			.fmt = "%0.2f",
+			.flags = slider_inverted,
+			.min = 0.5,
+			.max = 1.0,
+			.step = 0.05,
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Mouse Speed",
+		.slider = {
+			.cvar = &sensitivity,
+			.fmt = "%0.1f",
+			.min = 1,
+			.max = 11,
+			.step = 0.5,
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Music Volume",
+		.slider = {
+			.cvar = &bgmvolume,
+			.fmt = "%0.1f",
+			.min = 0,
+			.max = 1,
+#ifdef _WIN32
+			.step = 1.0,
+#else
+			.step = 0.1,
+#endif
+		},
+	},
+	{
+		.type = option_slider,
+		.name = "Sound Volume",
+		.slider = {
+			.cvar = &volume,
+			.fmt = "%0.1f",
+			.min = 0,
+			.max = 1,
+			.step = 0.1,
+		},
+	},
+	{
+		.type = option_onoff,
+		.name = "Always Run",
+		.onoff = {
+			.cvar = &cl_alwaysrun,
+		},
+	},
+	{
+		.type = option_onoff,
+		.name = "Invert Mouse",
+		.onoff = {
+			.cvar = &m_invert,
+		},
+	},
+	{
+		.type = option_onoff,
+		.name = "Lookspring",
+		.onoff = {
+			.cvar = &lookspring,
+		},
+	},
+	{
+		.type = option_onoff,
+		.name = "Lookstrafe",
+		.onoff = {
+			.cvar = &lookstrafe,
+		},
+	},
+#ifdef _WIN32
+	{
+		.type = option_onoff,
+		.name = "Use Mouse",
+		.onoff = {
+			.cvar = &_windowed_mouse,
+		},
+	},
+#endif
+	{
+		.type = option_button,
+		.name = "Video Options",
+		.button = {
+			.action = action_callback,
+			.callback = &M_Menu_Video_f,
+		},
+	},
+};
+
+static menu_t options_menu = {
+	.cursor = 0,
+	.options = options,
+	.options_count = Q_ARRLEN(options),
+	.enter = M_Menu_Options_f
+};
 
 qboolean	m_entersound;		// play after drawing a frame, so caching
 								// won't disrupt the sound
@@ -1072,203 +1213,12 @@ again:
 //=============================================================================
 /* OPTIONS MENU */
 
-enum
-{
-	option_onoff,
-	option_slider,
-	option_button,
-};
-
-enum
-{
-	action_none,
-	action_callback,
-	action_cmd,
-};
-
-enum
-{
-	slider_dynamic_range	= (1 << 0),
-	slider_inverted			= (1 << 1),
-};
-
 static void M_ReadScale (float *min, float *max, float *step)
 {
 	*min = 1;
 	*max = scr_maxscaling;
 	*step = 1;
 }
-
-typedef struct
-{
-	cvar_t *cvar;
-} onoff_t;
-
-typedef struct
-{
-	cvar_t			*cvar;
-	const char		*fmt;
-	int				flags;
-	union
-	{
-		struct
-		{
-			float	min, max, step;
-		};
-		void		(*read)(float *min, float *max, float *step);
-	};
-} slider_t;
-
-typedef struct
-{
-	int				action;
-	union
-	{
-		void		(*callback)(void);
-		const char	*cmd;
-	};
-} button_t;
-
-typedef struct option_s
-{
-	int				type;
-	unsigned		namelen;
-	const char		*name;
-	union
-	{
-		onoff_t		onoff;
-		slider_t	slider;
-		button_t	button;
-	};
-} option_t;
-
-static option_t options[] = {
-	{
-		.type = option_button,
-		.name = "Controls",
-		.button = {
-			.action = action_callback,
-			.callback = &M_Menu_Keys_f,
-		},
-	},
-	{
-		.type = option_button,
-		.name = "Reset config",
-		.button = {
-			.action = action_cmd,
-			.cmd = "exec default.cfg\n",
-		},
-	},
-	{
-		.type = option_slider,
-		.name = "Screen size",
-		.slider = {
-			.cvar = &scr_viewsize,
-			.fmt = "%0.0f",
-			.min = 30,
-			.max = 120,
-			.step = 10,
-		},
-	},
-	{
-		.type = option_slider,
-		.name = "UI Scale",
-		.slider = {
-			.cvar = &_scr_scaling,
-			.fmt = "%0.0f",
-			.flags = slider_dynamic_range,
-			.read = &M_ReadScale
-		},
-	},
-	{
-		.type = option_slider,
-		.name = "Brightness",
-		.slider = {
-			.cvar = &v_gamma,
-			.fmt = "%0.2f",
-			.flags = slider_inverted,
-			.min = 0.5,
-			.max = 1.0,
-			.step = 0.05,
-		},
-	},
-	{
-		.type = option_slider,
-		.name = "Mouse Speed",
-		.slider = {
-			.cvar = &sensitivity,
-			.fmt = "%0.1f",
-			.min = 1,
-			.max = 11,
-			.step = 0.5,
-		},
-	},
-	{
-		.type = option_slider,
-		.name = "Music Volume",
-		.slider = {
-			.cvar = &bgmvolume,
-			.fmt = "%0.1f",
-			.min = 0,
-			.max = 1,
-#ifdef _WIN32
-			.step = 1.0,
-#else
-			.step = 0.1,
-#endif
-		},
-	},
-	{
-		.type = option_slider,
-		.name = "Sound Volume",
-		.slider = {
-			.cvar = &volume,
-			.fmt = "%0.1f",
-			.min = 0,
-			.max = 1,
-			.step = 0.1,
-		},
-	},
-	{
-		.type = option_onoff,
-		.name = "Always Run",
-		.onoff = {
-			.cvar = &cl_alwaysrun,
-		},
-	},
-	{
-		.type = option_onoff,
-		.name = "Invert Mouse",
-		.onoff = {
-			.cvar = &m_invert,
-		},
-	},
-	{
-		.type = option_onoff,
-		.name = "Lookspring",
-		.onoff = {
-			.cvar = &lookspring,
-		},
-	},
-	{
-		.type = option_onoff,
-		.name = "Lookstrafe",
-		.onoff = {
-			.cvar = &lookstrafe,
-		},
-	},
-#ifdef _WIN32
-	{
-		.type = option_onoff,
-		.name = "Use Mouse",
-		.onoff = {
-			.cvar = &_windowed_mouse,
-		},
-	},
-#endif
-};
-
-static int options_cursor;
 
 void M_Menu_Options_f (void)
 {
@@ -1282,24 +1232,41 @@ void M_Menu_Options_f (void)
 	{
 		options[i].namelen = strlen(options[i].name);
 	}
+
+	if (!video_menu)
+	{
+		options_menu.options_count = Q_ARRLEN(options) - 1;
+	}
+	else
+	{
+		options_menu.options_count = Q_ARRLEN(options);
+	}
 }
 
-void M_Options_Draw (void)
+void M_Options_Draw (menu_t *menu)
 {
 	size_t		i;
 	int			y;
 	float		r, min, max, step, v;
 	option_t	*o;
-	const int	starty = 32;
+	int			starty = 32;
 
 	M_DrawPlaque ();
 	M_DrawMenuHeader ("gfx/p_option.lmp");
 
 	y = starty;
 
-	for (i = 0; i < Q_ARRLEN(options); ++i, y += FONT_HEIGHT)
+	if (menu->title)
 	{
-		o = &options[i];
+		M_PrintWhite((SCREEN_WIDTH - FONT_WIDTH * strlen(menu->title)) / 2, y, menu->title);
+		y += 2 * FONT_WIDTH;
+	}
+
+	starty = y;
+
+	for (i = 0; i < menu->options_count; ++i, y += FONT_HEIGHT)
+	{
+		o = &menu->options[i];
 
 		M_Print (16 + (18 - o->namelen) * FONT_WIDTH, y, o->name);
 
@@ -1332,21 +1299,22 @@ void M_Options_Draw (void)
 				}
 				M_DrawSlider (188, y, r, v, o->slider.fmt);
 				break;
+
+			case option_values:
+				v = o->values.cvar->value;
+				M_Print (188, y, o->values.data[(int)v].name);
+				break;
 		}
 	}
 
-	if (video_menu)
-	{
-		M_Print (16 + 5 * FONT_WIDTH, y, "Video Options");
-	}
-
-	M_DrawMenuCursor (168, starty + options_cursor * FONT_HEIGHT);
+	M_DrawMenuCursor (168, starty + menu->cursor * FONT_HEIGHT);
 }
 
 static void M_Adjust (option_t *o, int dir)
 {
-	cvar_t *cvar;
-	float min, max, step, v;
+	int		i;
+	cvar_t	*cvar;
+	float	min, max, step, v;
 
 	switch (o->type)
 	{
@@ -1381,27 +1349,44 @@ static void M_Adjust (option_t *o, int dir)
 			cvar->value = Clampf(min, max, v);
 			Cvar_SetValue (cvar->name, cvar->value);
 			break;
+
+		case option_values:
+			S_LocalSound ("misc/menu3.wav");
+			cvar = o->values.cvar;
+			i = (int)cvar->value + dir;
+			if (i < 0)
+			{
+				i = o->values.count - 1;
+			}
+			else if (i >= (int)o->values.count)
+			{
+				i = 0;
+			}
+			Cvar_SetValue(cvar->name, i);
+			break;
 	}
 }
 
-void M_Options_Key (int k)
+void M_Options_Key (menu_t *menu, int k)
 {
 	option_t *o;
 
 	switch (k)
 	{
 		case K_ESCAPE:
-			M_Menu_Main_f ();
+			if (menu->parent)
+			{
+				menu->parent->enter();
+			}
+			else
+			{
+				M_Menu_Main_f ();
+			}
 			break;
 
 		case K_ENTER:
 			m_entersound = true;
-			if (options_cursor == Q_ARRLEN(options))
-			{
-				M_Menu_Video_f ();
-				return;
-			}
-			o = &options[options_cursor];
+			o = &menu->options[menu->cursor];
 			if (o->type == option_button)
 			{
 				switch (o->button.action)
@@ -1422,25 +1407,25 @@ void M_Options_Key (int k)
 
 		case K_UPARROW:
 			S_LocalSound ("misc/menu1.wav");
-			options_cursor--;
-			if (options_cursor < 0)
-				options_cursor = Q_ARRLEN(options) - 1 + !!video_menu;
+			menu->cursor--;
+			if (menu->cursor < 0)
+				menu->cursor = menu->options_count - 1;
 			break;
 
 		case K_DOWNARROW:
 			S_LocalSound ("misc/menu1.wav");
-			options_cursor++;
-			if (options_cursor >= (int)Q_ARRLEN(options) + !!video_menu)
-				options_cursor = 0;
+			menu->cursor++;
+			if (menu->cursor >= (int)menu->options_count)
+				menu->cursor = 0;
 			break;
 
 		case K_LEFTARROW:
-			o = &options[options_cursor];
+			o = &menu->options[menu->cursor];
 			M_Adjust(o, -1);
 			break;
 
 		case K_RIGHTARROW:
-			o = &options[options_cursor];
+			o = &menu->options[menu->cursor];
 			M_Adjust(o, 1);
 			break;
 	}
@@ -1643,16 +1628,10 @@ void M_Menu_Video_f (void)
 	key_dest = key_menu;
 	m_state = m_video;
 	m_entersound = true;
-}
-
-void M_Video_Draw (void)
-{
-	video_menu->draw ();
-}
-
-void M_Video_Key (int key)
-{
-	video_menu->key (key);
+	if (video_menu->enter)
+	{
+		video_menu->enter ();
+	}
 }
 
 //=============================================================================
@@ -3179,7 +3158,7 @@ void M_Draw (void)
 		break;
 
 	case m_options:
-		M_Options_Draw ();
+		M_Options_Draw (&options_menu);
 		break;
 
 	case m_keys:
@@ -3187,7 +3166,7 @@ void M_Draw (void)
 		break;
 
 	case m_video:
-		M_Video_Draw ();
+		M_Options_Draw (video_menu);
 		break;
 
 	case m_help:
@@ -3270,7 +3249,7 @@ void M_Keydown (int key)
 		return;
 
 	case m_options:
-		M_Options_Key (key);
+		M_Options_Key (&options_menu, key);
 		return;
 
 	case m_keys:
@@ -3278,7 +3257,7 @@ void M_Keydown (int key)
 		return;
 
 	case m_video:
-		M_Video_Key (key);
+		M_Options_Key (video_menu, key);
 		return;
 
 	case m_help:
@@ -3317,10 +3296,11 @@ void M_Keydown (int key)
 
 void M_RegisterVideoMenu (menu_t *m)
 {
-	if (!m->draw || !m->key)
+	if (!m->options || !m->options_count)
 	{
 		Sys_Error_f ("incorrect video menu provided\n");
 	}
+	m->parent = &options_menu;
 	video_menu = m;
 }
 
