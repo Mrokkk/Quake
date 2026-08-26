@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -25,11 +25,11 @@ cvar_t variables are used to hold scalar or string variables that can be changed
 in C code.
 
 it is sufficient to initialize a cvar_t with just the first two fields, or
-you can add a ,true flag for variables that you want saved to the configuration
+you can add a CVAR_ARCHIVE flag for variables that you want saved to the configuration
 file when the game is quit:
 
 cvar_t	r_draworder = {"r_draworder","1"};
-cvar_t	scr_screensize = {"screensize","1",true};
+cvar_t	scr_screensize = {"screensize","1",CVAR_ARCHIVE};
 
 Cvars must be registered before use, or they will have a 0 value instead of the float interpretation of the string.  Generally, all cvar_t declarations should be registered in the apropriate init function before any console commands are executed:
 Cvar_RegisterVariable (&host_framerate);
@@ -58,22 +58,25 @@ interface from being ambiguous.
 
 Q_BEGIN_DECLS
 
+#define	CVAR_NONE		(0u)
+#define	CVAR_ARCHIVE	(1u << 0)	// set to true to cause it to be saved to vars.rc
+#define	CVAR_SERVER		(1u << 1)	// notifies players when changed
+
 typedef struct cvar_s
 {
-	char		*name;
-	char		*string;
-	qboolean	archive;	// set to true to cause it to be saved to vars.rc
-	qboolean	server;		// notifies players when changed
-	float		value;
-	void		(*callback)(void);
-	struct cvar_s *next;
+	char			*name;
+	char			*string;
+	unsigned		flags;
+	float			value;
+	void			(*callback)(void);
+	struct cvar_s	*next;
 } cvar_t;
 
-void 	Cvar_RegisterVariable (cvar_t *variable);
+void	Cvar_RegisterVariable (cvar_t *variable);
 // registers a cvar that allready has the name, string, and optionally the
 // archive elements set.
 
-void 	Cvar_Set (char *var_name, char *value);
+void	Cvar_Set (char *var_name, char *value);
 // equivelant to "<name> <variable>" typed at the console
 
 void	Cvar_SetValue (char *var_name, float value);

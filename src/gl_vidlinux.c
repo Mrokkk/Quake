@@ -69,17 +69,17 @@ int		UseKeyboard = 1;
 
 int		mouserate = MOUSE_DEFAULTSAMPLERATE;
 
-cvar_t		vid_mode = {"vid_mode","5",false};
-cvar_t		vid_redrawfull = {"vid_redrawfull","0",false};
-cvar_t		vid_waitforrefresh = {"vid_waitforrefresh","0",true};
+cvar_t		vid_mode = {"vid_mode", "5", CVAR_NONE};
+cvar_t		vid_redrawfull = {"vid_redrawfull", "0", CVAR_NONE};
+cvar_t		vid_waitforrefresh = {"vid_waitforrefresh", "0", CVAR_ARCHIVE};
  
 char	*framebuffer_ptr;
 
 cvar_t  mouse_button_commands[3] =
 {
-    {"mouse1","+attack"},
-    {"mouse2","+strafe"},
-    {"mouse3","+forward"},
+    {"mouse1", "+attack", CVAR_NONE},
+    {"mouse2", "+strafe", CVAR_NONE},
+    {"mouse3", "+forward", CVAR_NONE},
 };
 
 int     mouse_buttons;
@@ -89,7 +89,7 @@ float   mouse_x, mouse_y;
 float	old_mouse_x, old_mouse_y;
 int		mx, my;
 
-cvar_t	m_filter = {"m_filter","1"};
+cvar_t	m_filter = {"m_filter", "1", CVAR_NONE};
 
 int scr_width, scr_height;
 
@@ -106,7 +106,7 @@ int		texture_extension_number = 1;
 
 float		gldepthmin, gldepthmax;
 
-cvar_t	gl_ztrick = {"gl_ztrick","1"};
+cvar_t	gl_ztrick = {"gl_ztrick", "1", CVAR_NONE};
 
 const char *gl_vendor;
 const char *gl_renderer;

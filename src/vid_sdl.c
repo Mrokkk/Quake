@@ -25,16 +25,16 @@
 
 typedef uint32_t pixel32_t;
 
-static cvar_t	vid_vsync = {"vid_vsync", "1", true, false, 0};
-static cvar_t	vid_fullscreen = {"vid_fullscreen", "0", true, false, 0};
-static cvar_t	vid_width = {"vid_width", "960", true, false, 960};
-static cvar_t	vid_height = {"vid_height", "600", true, false, 600};
+static cvar_t	vid_vsync = {"vid_vsync", "1", CVAR_ARCHIVE, 0};
+static cvar_t	vid_fullscreen = {"vid_fullscreen", "0", CVAR_ARCHIVE, 0};
+static cvar_t	vid_width = {"vid_width", "960", CVAR_ARCHIVE, 960};
+static cvar_t	vid_height = {"vid_height", "600", CVAR_ARCHIVE, 600};
 
-static cvar_t	ui_vid_mode = {"ui_vid_mode", "-1", false, false, -1};
-static cvar_t	ui_vid_width = {"ui_vid_width", "960", false, false, 960};
-static cvar_t	ui_vid_height = {"ui_vid_height", "600", false, false, 600};
-static cvar_t	ui_vid_vsync = {"ui_vid_vsync", "1", false, false, 1};
-static cvar_t	ui_vid_fullscreen = {"ui_vid_fullscreen", "0", false, false, 0};
+static cvar_t	ui_vid_mode = {"ui_vid_mode", "-1", CVAR_NONE, -1};
+static cvar_t	ui_vid_width = {"ui_vid_width", "960", CVAR_NONE, 960};
+static cvar_t	ui_vid_height = {"ui_vid_height", "600", CVAR_NONE, 600};
+static cvar_t	ui_vid_vsync = {"ui_vid_vsync", "1", CVAR_NONE, 1};
+static cvar_t	ui_vid_fullscreen = {"ui_vid_fullscreen", "0", CVAR_NONE, 0};
 
 static qboolean	initialized = false;
 static qboolean	vsync = true;

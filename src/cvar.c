@@ -122,7 +122,7 @@ void Cvar_Set (char *var_name, char *value)
 	var->value = Q_atof (var->string);
 	if (changed)
 	{
-		if (var->server && sv.active)
+		if ((var->flags & CVAR_SERVER) && sv.active)
 			SV_BroadcastPrintf ("\"%s\" changed to \"%s\"\n", var->name, var->string);
 		if (var->callback)
 			var->callback();
@@ -220,7 +220,7 @@ void Cvar_WriteVariables (FILE *f)
 	cvar_t	*var;
 	
 	for (var = cvar_vars ; var ; var = var->next)
-		if (var->archive)
+		if (var->flags & CVAR_ARCHIVE)
 			fprintf (f, "%s \"%s\"\n", var->name, var->string);
 }
 

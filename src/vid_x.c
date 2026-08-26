@@ -42,9 +42,9 @@
 
 unsigned short d_8to16table[256];
 
-static cvar_t	vid_vsync = {"vid_vsync", "1", true};
-static cvar_t	vid_fullscreen = {"vid_fullscreen", "0", true};
-static cvar_t	vid_refreshrate = {"vid_refreshrate", "60", true};
+static cvar_t	vid_vsync = {"vid_vsync", "1", CVAR_ARCHIVE};
+static cvar_t	vid_fullscreen = {"vid_fullscreen", "0", CVAR_ARCHIVE};
+static cvar_t	vid_refreshrate = {"vid_refreshrate", "60", CVAR_ARCHIVE};
 
 static qboolean			use_shm;
 static Display			*x_disp;

@@ -57,13 +57,13 @@ int messagesReceived = 0;
 int unreliableMessagesSent = 0;
 int unreliableMessagesReceived = 0;
 
-cvar_t	net_messagetimeout = {"net_messagetimeout","300"};
-cvar_t	hostname = {"hostname", "UNNAMED"};
+cvar_t	net_messagetimeout = {"net_messagetimeout", "300", CVAR_NONE};
+cvar_t	hostname = {"hostname", "UNNAMED", CVAR_NONE};
 
 qboolean	configRestored = false;
 
 #ifdef IDGODS
-cvar_t	idgods = {"idgods", "0"};
+cvar_t	idgods = {"idgods", "0", CVAR_NONE};
 #endif
 
 int	vcrFile = -1;
