@@ -34,7 +34,6 @@ void SCR_UpdateScreen (void);
 
 void SCR_SizeUp (void);
 void SCR_SizeDown (void);
-void SCR_BringDownConsole (void);
 void SCR_CenterPrint (const char *str);
 
 void SCR_BeginLoadingPlaque (void);
@@ -64,8 +63,6 @@ extern	int			scr_copytop;
 extern	int			scr_copyeverything;
 
 extern qboolean		block_drawing;
-
-void SCR_UpdateWholeScreen (void);
 
 Q_END_DECLS
 

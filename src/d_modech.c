@@ -31,16 +31,6 @@ short	*zspantable[MAXHEIGHT];
 
 /*
 ================
-D_Patch
-================
-*/
-void D_Patch (void)
-{
-}
-
-
-/*
-================
 D_ViewChanged
 ================
 */
@@ -84,8 +74,6 @@ void D_ViewChanged (void)
 			zspantable[i] = d_pzbuffer + i*d_zwidth;
 		}
 	}
-
-	D_Patch ();
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :

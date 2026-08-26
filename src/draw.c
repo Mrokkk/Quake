@@ -23,7 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
-typedef struct {
+typedef struct
+{
 	vrect_t	rect;
 	int		width;
 	int		height;
@@ -33,9 +34,9 @@ typedef struct {
 
 static rectdesc_t	r_rectdesc;
 
-byte	*draw_chars;	// 8*8 graphic characters
-qpic_t	*draw_disc;
-qpic_t	*draw_backtile;
+qpic_t			*draw_disc;
+static byte		*draw_chars;	// 8*8 graphic characters
+static qpic_t	*draw_backtile;
 
 //=============================================================================
 /* Support Routines */
@@ -50,6 +51,11 @@ typedef struct cachepic_s
 cachepic_t	menu_cachepics[MAX_CACHED_PICS];
 int			menu_numcachepics;
 
+/*
+================
+Draw_PicFromWad
+================
+*/
 qpic_t	*Draw_PicFromWad (const char *name)
 {
 	return W_GetLumpName (name);

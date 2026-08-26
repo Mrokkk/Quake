@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- *
  */
 // vid_x.c -- general x video driver
 
@@ -81,7 +80,6 @@ static qboolean vid_changed;
 static byte current_palette[768];
 
 static void VID_RegisterMenu(void);
-static void VID_Menu_Enter(void);
 
 #define COMMON_XINPUT_FLAGS \
 	(StructureNotifyMask \
@@ -435,8 +433,6 @@ void VID_Init(unsigned char *palette)
 	vid.numpages		= 2;
 	vid.colormap		= host_colormap;
 	vid.fullbright		= 256 - LittleLong(*((int *)vid.colormap + 2048));
-
-	srandom(getpid());
 
 	// open the display
 	x_disp = XOpenDisplay(NULL);

@@ -337,14 +337,14 @@ void M_DrawTextBox (int x, int y, int width, int lines)
 	p = Draw_CachePic ("gfx/box_ml.lmp");
 	for (n = 0; n < lines; n++)
 	{
-		cy += 8;
+		cy += FONT_HEIGHT;
 		M_DrawTransPic (cx, cy, p);
 	}
 	p = Draw_CachePic ("gfx/box_bl.lmp");
-	M_DrawTransPic (cx, cy+8, p);
+	M_DrawTransPic (cx, cy + FONT_HEIGHT, p);
 
 	// draw middle
-	cx += 8;
+	cx += FONT_HEIGHT;
 	while (width > 0)
 	{
 		cy = y;
@@ -353,15 +353,15 @@ void M_DrawTextBox (int x, int y, int width, int lines)
 		p = Draw_CachePic ("gfx/box_mm.lmp");
 		for (n = 0; n < lines; n++)
 		{
-			cy += 8;
+			cy += FONT_HEIGHT;
 			if (n == 1)
 				p = Draw_CachePic ("gfx/box_mm2.lmp");
 			M_DrawTransPic (cx, cy, p);
 		}
 		p = Draw_CachePic ("gfx/box_bm.lmp");
-		M_DrawTransPic (cx, cy+8, p);
+		M_DrawTransPic (cx, cy + FONT_HEIGHT, p);
 		width -= 2;
-		cx += 16;
+		cx += FONT_WIDTH * 2;
 	}
 
 	// draw right side
@@ -371,11 +371,11 @@ void M_DrawTextBox (int x, int y, int width, int lines)
 	p = Draw_CachePic ("gfx/box_mr.lmp");
 	for (n = 0; n < lines; n++)
 	{
-		cy += 8;
+		cy += FONT_HEIGHT;
 		M_DrawTransPic (cx, cy, p);
 	}
 	p = Draw_CachePic ("gfx/box_br.lmp");
-	M_DrawTransPic (cx, cy+8, p);
+	M_DrawTransPic (cx, cy + FONT_HEIGHT, p);
 }
 
 #define SLIDER_RANGE	10

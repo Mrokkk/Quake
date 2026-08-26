@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -108,7 +108,7 @@ void SCR_CenterPrint (const char *str)
 	}
 }
 
-void SCR_EraseCenterString (void)
+static void SCR_EraseCenterString (void)
 {
 	int		y;
 
@@ -127,7 +127,7 @@ void SCR_EraseCenterString (void)
 	Draw_TileClear_Align (0, y, SCREEN_WIDTH, 8 * scr_erase_lines, CENTER, CENTER);
 }
 
-void SCR_DrawCenterString (void)
+static void SCR_DrawCenterString (void)
 {
 	char	*start;
 	int		l;
@@ -175,7 +175,7 @@ void SCR_DrawCenterString (void)
 	while (1);
 }
 
-void SCR_CheckDrawCenterString (void)
+static void SCR_CheckDrawCenterString (void)
 {
 	scr_copytop = 1;
 	if (scr_center_lines > scr_erase_lines)
@@ -191,9 +191,9 @@ void SCR_CheckDrawCenterString (void)
 	SCR_DrawCenterString ();
 }
 
-void SCR_DrawFPS (void)
+static void SCR_DrawFPS (void)
 {
-	static char s[32];
+	char s[32];
 	Q_snprintf(s, sizeof(s), "FPS %5.1f", vid_fps);
 	Draw_String_Align (-strlen(s) * (FONT_WIDTH + 1), 0, RIGHT, TOP, s);
 }
@@ -205,7 +205,7 @@ void SCR_DrawFPS (void)
 CalcFov
 ====================
 */
-float CalcFov (float fov_x, float width, float height)
+static float CalcFov (float fov_x, float width, float height)
 {
 	float   a;
 	float   x;
@@ -305,7 +305,6 @@ static void SCR_CalcRefdef (void)
 	R_ViewChanged (&vrect, sb_lines * scr_scaling, vid.aspect);
 }
 
-
 /*
 =================
 SCR_SizeUp_f
@@ -313,12 +312,11 @@ SCR_SizeUp_f
 Keybinding command
 =================
 */
-void SCR_SizeUp_f (void)
+static void SCR_SizeUp_f (void)
 {
 	Cvar_SetValue ("viewsize",scr_viewsize.value+10);
 	vid.recalc_refdef = 1;
 }
-
 
 /*
 =================
@@ -327,7 +325,7 @@ SCR_SizeDown_f
 Keybinding command
 =================
 */
-void SCR_SizeDown_f (void)
+static void SCR_SizeDown_f (void)
 {
 	Cvar_SetValue ("viewsize",scr_viewsize.value-10);
 	vid.recalc_refdef = 1;
@@ -368,14 +366,12 @@ void SCR_Init (void)
 	scr_initialized = true;
 }
 
-
-
 /*
 ==============
 SCR_DrawRam
 ==============
 */
-void SCR_DrawRam (void)
+static void SCR_DrawRam (void)
 {
 	if (!scr_showram.value)
 		return;
@@ -393,7 +389,7 @@ void SCR_DrawRam (void)
 SCR_DrawTurtle
 ==============
 */
-void SCR_DrawTurtle (void)
+static void SCR_DrawTurtle (void)
 {
 	static int	count;
 	
@@ -420,7 +416,7 @@ void SCR_DrawTurtle (void)
 SCR_DrawNet
 ==============
 */
-void SCR_DrawNet (void)
+static void SCR_DrawNet (void)
 {
 	if (realtime - cl.last_received_message < 0.3)
 		return;
@@ -437,7 +433,7 @@ void SCR_DrawNet (void)
 DrawPause
 ==============
 */
-void SCR_DrawPause (void)
+static void SCR_DrawPause (void)
 {
 	qpic_t	*pic;
 
@@ -458,7 +454,7 @@ void SCR_DrawPause (void)
 SCR_DrawLoading
 ==============
 */
-void SCR_DrawLoading (void)
+static void SCR_DrawLoading (void)
 {
 	qpic_t	*pic;
 
@@ -478,7 +474,7 @@ void SCR_DrawLoading (void)
 SCR_SetUpToDrawConsole
 ==================
 */
-void SCR_SetUpToDrawConsole (void)
+static void SCR_SetUpToDrawConsole (void)
 {
 	Con_CheckResize ();
 	
@@ -637,7 +633,6 @@ void WritePCXfile (char *filename, byte *data, int width, int height,
 } 
  
 
-
 /* 
 ================== 
 SCR_ScreenShot_f
@@ -683,9 +678,7 @@ void SCR_ScreenShot_f (void)
 	Con_Printf ("Wrote %s\n", pcxname);
 } 
 
-
 //=============================================================================
-
 
 /*
 ===============
@@ -733,10 +726,10 @@ void SCR_EndLoadingPlaque (void)
 
 //=============================================================================
 
-const char	*scr_notifystring;
-qboolean	scr_drawdialog;
+static const char	*scr_notifystring;
+static qboolean		scr_drawdialog;
 
-void SCR_DrawNotifyString (void)
+static void SCR_DrawNotifyString (void)
 {
 	const char	*start;
 	int			l;
@@ -804,28 +797,7 @@ int SCR_ModalMessage (const char *text)
 	return key_lastpress == 'y';
 }
 
-
 //=============================================================================
-
-/*
-===============
-SCR_BringDownConsole
-
-Brings the console down and fades the palettes back to normal
-================
-*/
-void SCR_BringDownConsole (void)
-{
-	int		i;
-	
-	scr_centertime_off = 0;
-	
-	for (i=0 ; i<20 && scr_conlines != scr_con_current ; i++)
-		SCR_UpdateScreen ();
-
-	cl.cshifts[0].percent = 0;		// no area contents palette on next frame
-	VID_SetPalette (host_basepal);
-}
 
 /*
 ==================
@@ -1013,17 +985,6 @@ void SCR_UpdateScreen (void)
 	
 		VID_Update (&vrect);
 	}
-}
-
-/*
-==================
-SCR_UpdateWholeScreen
-==================
-*/
-void SCR_UpdateWholeScreen (void)
-{
-	scr_fullupdate = 0;
-	SCR_UpdateScreen ();
 }
 
 // vim: set noexpandtab tabstop=4 shiftwidth=4 :
