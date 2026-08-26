@@ -203,6 +203,13 @@ static option_t options[] = {
 	},
 #endif
 	{
+		.type = option_onoff,
+		.name = "Crosshair",
+		.onoff = {
+			.cvar = &crosshair,
+		},
+	},
+	{
 		.type = option_button,
 		.name = "Video Options",
 		.button = {
