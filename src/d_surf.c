@@ -137,7 +137,7 @@ surfcache_t     *D_SCAlloc (int width, int size)
 		Sys_Error ("D_SCAlloc: bad cache size %d\n", size);
 	
 	size = (long)&((surfcache_t *)0)->data[size];
-	size = (size + 3) & ~3;
+	size = Q_ALIGN(size, sizeof(void *));
 	if (size > sc_size)
 		Sys_Error ("D_SCAlloc: %i > cache size",size);
 

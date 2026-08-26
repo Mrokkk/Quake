@@ -99,6 +99,7 @@ void InsertLinkAfter (link_t *l, link_t *after);
 #define Q_MAX(a, b)		({ a > b ? a : b; })
 
 #define Q_ARRLEN(array)		(sizeof(array) / sizeof(*(array)))
+#define Q_ALIGN(x, align)	(((x) + (align) - 1) & (~((align) - 1)))
 #define Q_UNUSED(x)			((void)(x))	// for pesky compiler / lint warnings
 
 #if defined(__GNUC__) || defined(__TINYC__)

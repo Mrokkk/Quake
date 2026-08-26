@@ -37,7 +37,7 @@ Q_BEGIN_DECLS
 
 #define DS_SPAN_LIST_END	-128
 
-#define SURFCACHE_SIZE_AT_320X200	600*1024
+#define SURFCACHE_SIZE_AT_320X200	640*1024
 
 typedef struct surfcache_s
 {
