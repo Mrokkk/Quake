@@ -62,6 +62,8 @@ int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)
 	float	frac, clipdist, *pclipnormal;
 	float	*in, *instep, *outstep, *vert2;
 
+	dists[0] = 0.f;
+
 	clipdist = pclipplane->dist;
 	pclipnormal = pclipplane->normal;
 	
@@ -399,3 +401,4 @@ void R_DrawSprite (void)
 	R_SetupAndDrawSprite ();
 }
 
+// vim: set noexpandtab tabstop=4 shiftwidth=4 :
