@@ -444,7 +444,7 @@ r_refdef.viewangles[2]=    0;
 				vrect.width = vid.width;
 				vrect.height = vid.height;
 
-				R_ViewChanged (&vrect, sb_lines * scr_scaling, vid.aspect);
+				R_ViewChanged (&vrect, sb_lines * scr_scaling, 1);
 			}
 			else
 			{
@@ -470,8 +470,7 @@ r_refdef.viewangles[2]=    0;
 
 				R_ViewChanged (&vrect,
 							   (int)((float)(sb_lines * scr_scaling) * (h/(float)vid.height)),
-							   vid.aspect * (h / w) *
-								 ((float)vid.width / (float)vid.height));
+							   (h / w) * ((float)vid.width / (float)vid.height));
 			}
 		}
 		else
@@ -481,7 +480,7 @@ r_refdef.viewangles[2]=    0;
 			vrect.width = vid.width;
 			vrect.height = vid.height;
 
-			R_ViewChanged (&vrect, sb_lines * scr_scaling, vid.aspect);
+			R_ViewChanged (&vrect, sb_lines * scr_scaling, 1);
 		}
 
 		r_viewchanged = false;

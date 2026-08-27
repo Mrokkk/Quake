@@ -649,7 +649,6 @@ void VID_Init(unsigned char *palette)
 	vid.conrowbytes		= vid.rowbytes;
 	vid.conwidth		= vid.width;
 	vid.conheight		= vid.height;
-	vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
 
 	frame_start = gettime_ns();
 }
@@ -961,7 +960,6 @@ static qboolean HandleConfigNotify(void)
 	vid.conheight		= vid.height;
 	vid.conrowbytes		= vid.rowbytes;
 	vid.recalc_refdef	= 1;			// force a surface cache flush
-	vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
 
 	Con_CheckResize();
 

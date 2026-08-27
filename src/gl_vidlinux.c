@@ -672,8 +672,6 @@ void VID_Init(unsigned char *palette)
 	vid.width = vid.conwidth;
 	vid.height = vid.conheight;
 
-	vid.aspect = ((float)vid.height / (float)vid.width) *
-				(320.0 / 240.0);
 	vid.numpages = 2;
 
 	GL_Init();

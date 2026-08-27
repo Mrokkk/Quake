@@ -1029,7 +1029,6 @@ void V_RenderView (void)
 		int		i;
 
 		vid.rowbytes <<= 1;
-		vid.aspect *= 0.5;
 
 		r_refdef.viewangles[YAW] -= lcd_yaw.value;
 		for (i=0 ; i<3 ; i++)
@@ -1050,7 +1049,6 @@ void V_RenderView (void)
 		r_refdef.vrect.height <<= 1;
 
 		vid.rowbytes >>= 1;
-		vid.aspect *= 2;
 	}
 	else
 	{

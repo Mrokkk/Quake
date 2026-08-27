@@ -202,24 +202,32 @@ static void SCR_DrawFPS (void)
 
 /*
 ====================
+AdaptFovx
+Adapt a 4:3 horizontal FOV to the current screen size using the "Hor+" scaling:
+2 * atan(screen_aspect_ratio / 4_3_aspect_ratio * tan(fov_x / 2)) * 180 / pi
+====================
+*/
+static float AdaptFovx (float fov_x, float width, float height)
+{
+	float x;
+
+	if ((x = height / width) == 0.75)
+		return fov_x;
+
+	return atan(0.75 / x * tan(fov_x / 360 * M_PI)) * 360 / M_PI;
+}
+
+/*
+====================
 CalcFov
 ====================
 */
 static float CalcFov (float fov_x, float width, float height)
 {
-	float   a;
-	float   x;
+	float x;
 
-	if (fov_x < 1 || fov_x > 179)
-		Sys_Error ("Bad fov: %f", fov_x);
-
-	x = width / tan(fov_x / 360 * M_PI);
-
-	a = atan (height / x);
-
-	a = a * 360 / M_PI;
-
-	return a;
+	x = tan(fov_x / 360 * M_PI);
+	return atan (height * x / width) * 360 / M_PI;
 }
 
 /*
@@ -271,7 +279,7 @@ static void SCR_CalcRefdef (void)
 	if (scr_fov.value > 170)
 		Cvar_Set ("fov","170");
 
-	r_refdef.fov_x = scr_fov.value;
+	r_refdef.fov_x = AdaptFovx (scr_fov.value, vid.width, vid.height);
 	r_refdef.fov_y = CalcFov (r_refdef.fov_x, r_refdef.vrect.width, r_refdef.vrect.height);
 
 // intermission is always full screen	
@@ -302,7 +310,7 @@ static void SCR_CalcRefdef (void)
 		scr_con_current = vid.height;
 
 // notify the refresh of the change
-	R_ViewChanged (&vrect, sb_lines * scr_scaling, vid.aspect);
+	R_ViewChanged (&vrect, sb_lines * scr_scaling, 1);
 }
 
 /*

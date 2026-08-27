@@ -45,7 +45,6 @@ typedef struct
 	unsigned		rowbytes;	// may be > width if displayed in a window
 	unsigned		width;		
 	unsigned		height;
-	float			aspect;		// width / height -- < 0 is taller than wide
 	int				numpages;
 	int				recalc_refdef;	// if true, recalc vid-based stuff
 	pixel_t			*conbuffer;

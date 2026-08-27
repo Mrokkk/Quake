@@ -218,7 +218,6 @@ static void VID_Restart(void)
 			vid.conrowbytes		= vid.rowbytes;
 			vid.conwidth		= vid.width;
 			vid.conheight		= vid.height;
-			vid.aspect			= ((float)vid.height / (float)vid.width) * ((float)SCREEN_WIDTH / 240.0f);
 			vid.recalc_refdef	= initialized;	// force a surface cache flush in case of reconfiguration
 
 			set_window_size |= !fullscreen;
