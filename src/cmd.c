@@ -215,7 +215,7 @@ void Cmd_StuffCmds_f (void)
 	int		i, j;
 	int		s;
 	char	*text, *build, c;
-		
+
 	if (Cmd_Argc () != 1)
 	{
 		Con_Printf ("stuffcmds : execute command line parameters\n");
@@ -232,22 +232,22 @@ void Cmd_StuffCmds_f (void)
 	}
 	if (!s)
 		return;
-		
-	text = Z_Malloc (s+1);
+
+	text = Z_Malloc (s + 1);
 	text[0] = 0;
-	for (i=1 ; i<com_argc ; i++)
+	for (i = 1; i < com_argc; i++)
 	{
 		if (!com_argv[i])
 			continue;		// NEXTSTEP nulls out -NXHost
-		Q_strcat (text,com_argv[i]);
+		Q_strlcat (text, com_argv[i], s + 1);
 		if (i != com_argc-1)
-			Q_strcat (text, " ");
+			Q_strlcat (text, " ", s + 1);
 	}
-	
+
 // pull out the commands
-	build = Z_Malloc (s+1);
+	build = Z_Malloc (s + 1);
 	build[0] = 0;
-	
+
 	for (i=0 ; i<s-1 ; i++)
 	{
 		if (text[i] == '+')
@@ -260,16 +260,16 @@ void Cmd_StuffCmds_f (void)
 			c = text[j];
 			text[j] = 0;
 			
-			Q_strcat (build, text+i);
-			Q_strcat (build, "\n");
+			Q_strlcat (build, text + i, s + 1);
+			Q_strlcat (build, "\n", s + 1);
 			text[j] = c;
 			i = j-1;
 		}
 	}
-	
+
 	if (build[0])
 		Cbuf_InsertText (build);
-	
+
 	Z_Free (text);
 	Z_Free (build);
 }
@@ -332,9 +332,11 @@ Creates a new command that executes a command string (possibly ; seperated)
 char *CopyString (char *in)
 {
 	char	*out;
+	size_t	l;
 	
-	out = Z_Malloc (strlen(in)+1);
-	strcpy (out, in);
+	l = strlen(in) + 1;
+	out = Z_Malloc (l);
+	memcpy (out, in, l);
 	return out;
 }
 
@@ -376,7 +378,7 @@ void Cmd_Alias_f (void)
 		a->next = cmd_alias;
 		cmd_alias = a;
 	}
-	strcpy (a->name, s);	
+	Q_strlcpy (a->name, s, sizeof(a->name));	
 
 // copy the rest of the command line
 	cmd[0] = 0;		// start out with a null string

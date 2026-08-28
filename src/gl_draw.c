@@ -243,7 +243,7 @@ qpic_t	*Draw_CachePic (char *path)
 	if (menu_numcachepics == MAX_CACHED_PICS)
 		Sys_Error ("menu_numcachepics == MAX_CACHED_PICS");
 	menu_numcachepics++;
-	strcpy (pic->name, path);
+	Q_strlcpy (pic->name, path, sizeof(pic->name));
 
 //
 // load the pic from disk
@@ -1255,7 +1255,7 @@ int GL_LoadTexture (char *identifier, int width, int height, byte *data, qboolea
 		numgltextures++;
 	}
 
-	strcpy (glt->identifier, identifier);
+	Q_strlcpy (glt->identifier, identifier, sizeof(glt->identifier));
 	glt->texnum = texture_extension_number;
 	glt->width = width;
 	glt->height = height;

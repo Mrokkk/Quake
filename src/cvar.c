@@ -103,8 +103,9 @@ Cvar_Set
 */
 void Cvar_Set (char *var_name, char *value)
 {
-	cvar_t	*var;
-	qboolean changed;
+	size_t		l;
+	cvar_t		*var;
+	qboolean	changed;
 	
 	var = Cvar_FindVar (var_name);
 	if (!var)
@@ -117,8 +118,9 @@ void Cvar_Set (char *var_name, char *value)
 	
 	Z_Free (var->string);	// free the old value string
 	
-	var->string = Z_Malloc (Q_strlen(value)+1);
-	Q_strcpy (var->string, value);
+	l = Q_strlen(value) + 1;
+	var->string = Z_Malloc (l);
+	memcpy (var->string, value, l);
 	var->value = Q_atof (var->string);
 	if (changed)
 	{

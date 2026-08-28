@@ -186,16 +186,6 @@ void Q_strcpy (char *dest, char *src)
 	*dest++ = 0;
 }
 
-void Q_strncpy (char *dest, char *src, int count)
-{
-	while (*src && count--)
-	{
-		*dest++ = *src++;
-	}
-	if (count)
-		*dest++ = 0;
-}
-
 size_t Q_strlcpy (char *dst, const char *src, size_t size)
 {
 	size_t len = strlen(src);
@@ -236,10 +226,27 @@ char *Q_strrchr(char *s, char c)
     return 0;
 }
 
-void Q_strcat (char *dest, char *src)
+size_t Q_strlcat (char *dest, const char *src, size_t size)
 {
-	dest += Q_strlen(dest);
-	Q_strcpy (dest, src);
+	size_t slen = strlen(src);
+	size_t dlen = strlen(dest);
+
+	if (Q_UNLIKELY(dlen + 1 >= size))
+	{
+		return dlen + slen;
+	}
+
+	if (Q_UNLIKELY(dlen + slen >= size))
+	{
+		memcpy(dest + dlen, src, size - dlen - 1);
+		dest[size - 1] = '\0';
+	}
+	else
+	{
+		memcpy(dest + dlen, src, slen + 1);
+	}
+
+	return dlen + slen;
 }
 
 int Q_strcmp (char *s1, char *s2)
@@ -1500,7 +1507,7 @@ static int COM_FindFile (const char *filename, int *handle, FILE **file)
 			// see if the file needs to be updated in the cache
 			if (!com_cachedir[0])
 			{
-				strcpy (cachepath, netpath);
+				Q_strlcpy (cachepath, netpath, sizeof(cachepath));
 			}
 			else
 			{	
@@ -1523,7 +1530,7 @@ static int COM_FindFile (const char *filename, int *handle, FILE **file)
 			
 				if (cachetime < findtime)
 					COM_CopyFile (netpath, cachepath);
-				strcpy (netpath, cachepath);
+				Q_strlcpy (netpath, cachepath, sizeof(netpath));
 			}
 
 			Sys_DPrintf_f ("%s\n", netpath);
@@ -1771,7 +1778,7 @@ pack_t *COM_LoadPackFile (char *packfile)
 	// parse the directory
 	for (i = 0; i < numpackfiles; i++)
 	{
-		strcpy (newfiles[i].name, info[i].name);
+		Q_strlcpy (newfiles[i].name, info[i].name, sizeof(newfiles->name));
 		newfiles[i].filepos = LittleLong(info[i].filepos);
 		newfiles[i].filelen = LittleLong(info[i].filelen);
 		COM_AddFileToHashMap(pack, &newfiles[i]);
@@ -1810,13 +1817,13 @@ void COM_AddGameDirectory (char *dir)
 	pack_t			*pak;
 	char			pakfile[MAX_OSPATH];
 
-	strcpy (com_gamedir, dir);
+	Q_strlcpy (com_gamedir, dir, sizeof(com_gamedir));
 
 	//
 	// add the directory to the search path
 	//
 	search = Hunk_Alloc (sizeof(searchpath_t));
-	strcpy (search->filename, dir);
+	Q_strlcpy (search->filename, dir, sizeof(search->filename));
 	search->next = com_searchpaths;
 	com_searchpaths = search;
 
@@ -1938,7 +1945,7 @@ void COM_InitFilesystem (void)
 					Sys_Error ("Couldn't load packfile: %s", com_argv[i]);
 			}
 			else
-				strcpy (search->filename, com_argv[i]);
+				Q_strlcpy (search->filename, com_argv[i], sizeof(search->filename));
 			search->next = com_searchpaths;
 			com_searchpaths = search;
 		}

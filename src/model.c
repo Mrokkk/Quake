@@ -1219,7 +1219,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 			Q_snprintf (name, sizeof(name), "*%i", i+1);
 			loadmodel = Mod_FindName (name);
 			*loadmodel = *mod;
-			strcpy (loadmodel->name, name);
+			Q_strlcpy (loadmodel->name, name, sizeof(loadmodel->name));
 			mod = loadmodel;
 		}
 	}
@@ -1238,8 +1238,8 @@ ALIAS MODELS
 Mod_LoadAliasFrame
 =================
 */
-void * Mod_LoadAliasFrame (void * pin, int *pframeindex, int numv,
-	trivertx_t *pbboxmin, trivertx_t *pbboxmax, aliashdr_t *pheader, char *name)
+static void * Mod_LoadAliasFrame (void * pin, int *pframeindex, int numv,
+	trivertx_t *pbboxmin, trivertx_t *pbboxmax, aliashdr_t *pheader, char *name, size_t namesize)
 {
 	trivertx_t		*pframe, *pinframe;
 	int				i, j;
@@ -1247,7 +1247,7 @@ void * Mod_LoadAliasFrame (void * pin, int *pframeindex, int numv,
 
 	pdaliasframe = (daliasframe_t *)pin;
 
-	strcpy (name, pdaliasframe->name);
+	Q_strlcpy (name, pdaliasframe->name, namesize);
 
 	for (i=0 ; i<3 ; i++)
 	{
@@ -1286,8 +1286,8 @@ void * Mod_LoadAliasFrame (void * pin, int *pframeindex, int numv,
 Mod_LoadAliasGroup
 =================
 */
-void * Mod_LoadAliasGroup (void * pin, int *pframeindex, int numv,
-	trivertx_t *pbboxmin, trivertx_t *pbboxmax, aliashdr_t *pheader, char *name)
+static void * Mod_LoadAliasGroup (void * pin, int *pframeindex, int numv,
+	trivertx_t *pbboxmin, trivertx_t *pbboxmax, aliashdr_t *pheader, char *name, size_t namesize)
 {
 	daliasgroup_t		*pingroup;
 	maliasgroup_t		*paliasgroup;
@@ -1339,7 +1339,7 @@ void * Mod_LoadAliasGroup (void * pin, int *pframeindex, int numv,
 									numv,
 									&paliasgroup->frames[i].bboxmin,
 									&paliasgroup->frames[i].bboxmax,
-									pheader, name);
+									pheader, name, namesize);
 	}
 
 	return ptemp;
@@ -1631,7 +1631,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 										pmodel->numverts,
 										&pheader->frames[i].bboxmin,
 										&pheader->frames[i].bboxmax,
-										pheader, pheader->frames[i].name);
+										pheader, pheader->frames[i].name, sizeof(pheader->frames[i].name));
 		}
 		else
 		{
@@ -1641,7 +1641,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 										pmodel->numverts,
 										&pheader->frames[i].bboxmin,
 										&pheader->frames[i].bboxmax,
-										pheader, pheader->frames[i].name);
+										pheader, pheader->frames[i].name, sizeof(pheader->frames[i].name));
 		}
 	}
 

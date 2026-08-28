@@ -459,7 +459,7 @@ void *Hunk_AllocName (int size, char *name)
 	
 	h->size = size;
 	h->sentinal = HUNK_SENTINAL;
-	Q_strncpy (h->name, name, 8);
+	Q_strlcpy (h->name, name, sizeof(h->name));
 	
 	return (void *)(h+1);
 }
@@ -550,7 +550,7 @@ void *Hunk_HighAllocName (int size, char *name)
 	memset (h, 0, size);
 	h->size = size;
 	h->sentinal = HUNK_SENTINAL;
-	Q_strncpy (h->name, name, 8);
+	Q_strlcpy (h->name, name, sizeof(h->name));
 
 	return (void *)(h+1);
 }

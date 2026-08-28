@@ -407,10 +407,9 @@ void Key_SetBinding (int keynum, char *binding)
 	}
 			
 // allocate memory for new binding
-	l = Q_strlen (binding);	
-	new = Z_Malloc (l+1);
-	Q_strcpy (new, binding);
-	new[l] = 0;
+	l = strlen (binding) + 1;
+	new = Z_Malloc (l);
+	memcpy (new, binding, l);
 	keybindings[keynum] = new;	
 }
 

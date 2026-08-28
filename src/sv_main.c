@@ -1086,10 +1086,10 @@ void SV_SpawnServer (char *server)
 
 	memset (&sv, 0, sizeof(sv));
 
-	strcpy (sv.name, server);
+	Q_strlcpy (sv.name, server, sizeof(sv.name));
 #ifdef QUAKE2
 	if (startspot)
-		strcpy(sv.startspot, startspot);
+		Q_strlcpy(sv.startspot, startspot, sizeof(sv.startspot));
 #endif
 
 // load progs to get entity field count

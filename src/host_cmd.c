@@ -272,13 +272,13 @@ void Host_Map_f (void)
 	cls.mapstring[0] = 0;
 	for (i=0 ; i<Cmd_Argc() ; i++)
 	{
-		strcat (cls.mapstring, Cmd_Argv(i));
-		strcat (cls.mapstring, " ");
+		Q_strlcat (cls.mapstring, Cmd_Argv(i), sizeof(cls.mapstring));
+		Q_strlcat (cls.mapstring, " ", sizeof(cls.mapstring));
 	}
-	strcat (cls.mapstring, "\n");
+	Q_strlcat (cls.mapstring, "\n", sizeof(cls.mapstring));
 
 	svs.serverflags = 0;			// haven't completed an episode yet
-	strcpy (name, Cmd_Argv(1));
+	Q_strlcpy (name, Cmd_Argv(1), sizeof(name));
 #ifdef QUAKE2
 	SV_SpawnServer (name, NULL);
 #else
@@ -293,8 +293,8 @@ void Host_Map_f (void)
 
 		for (i=2 ; i<Cmd_Argc() ; i++)
 		{
-			strcat (cls.spawnparms, Cmd_Argv(i));
-			strcat (cls.spawnparms, " ");
+			Q_strlcat (cls.spawnparms, Cmd_Argv(i), sizeof(cls.spawnparms));
+			Q_strlcat (cls.spawnparms, " ", sizeof(cls.spawnparms));
 		}
 		
 		Cmd_ExecuteString ("connect local", src_command);
@@ -326,12 +326,12 @@ void Host_Changelevel_f (void)
 		return;
 	}
 
-	strcpy (level, Cmd_Argv(1));
+	Q_strlcpy (level, Cmd_Argv(1), sizeof(level));
 	if (Cmd_Argc() == 2)
 		startspot = NULL;
 	else
 	{
-		strcpy (_startspot, Cmd_Argv(2));
+		Q_strlcpy (_startspot, Cmd_Argv(2), sizeof(_startspot));
 		startspot = _startspot;
 	}
 
@@ -351,7 +351,7 @@ void Host_Changelevel_f (void)
 		return;
 	}
 	SV_SaveSpawnparms ();
-	strcpy (level, Cmd_Argv(1));
+	Q_strlcpy (level, Cmd_Argv(1), sizeof(level));
 	SV_SpawnServer (level);
 #endif
 }
@@ -375,10 +375,10 @@ void Host_Restart_f (void)
 
 	if (cmd_source != src_command)
 		return;
-	strcpy (mapname, sv.name);	// must copy out, because it gets cleared
+	Q_strlcpy (mapname, sv.name, sizeof(mapname));	// must copy out, because it gets cleared
 								// in sv_spawnserver
 #ifdef QUAKE2
-	strcpy(startspot, sv.startspot);
+	Q_strlcpy(startspot, sv.startspot, sizeof(startspot));
 	SV_SpawnServer (mapname, startspot);
 #else
 	SV_SpawnServer (mapname);
@@ -416,7 +416,7 @@ void Host_Connect_f (void)
 		CL_StopPlayback ();
 		CL_Disconnect ();
 	}
-	strcpy (name, Cmd_Argv(1));
+	Q_strlcpy (name, Cmd_Argv(1), sizeof(name));
 	CL_EstablishConnection (name);
 	Host_Reconnect_f ();
 }
@@ -512,7 +512,7 @@ void Host_Savegame_f (void)
 		return;
 	}
 
-	if ((res = Q_snprintf (name, sizeof(name), "%s/%s", com_gamedir, savename)) >= (int)MAX_OSPATH - 4)
+	if ((res = Q_snprintf (name, sizeof(name), "%s/%s", com_gamedir, savename)) >= (int)sizeof(name) - 4)
 	{
 		Con_Printf ("Save path too long\n");
 		return;
@@ -589,9 +589,9 @@ void Host_Loadgame_f (void)
 
 	cls.demonum = -1;		// stop demo loop in case this fails
 
-	if ((res = Q_snprintf (name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1))) >= (int)sizeof(name))
+	if ((res = Q_snprintf (name, sizeof(name), "%s/%s", com_gamedir, Cmd_Argv(1))) >= (int)sizeof(name) - 4)
 	{
-		Con_Printf("Name too long\n");
+		Con_Printf ("Save path too long\n");
 		return;
 	}
 	COM_DefaultExtension (name, ".sav");
@@ -653,7 +653,7 @@ void Host_Loadgame_f (void)
 	{
 		fscanf (f, "%s\n", str);
 		sv.lightstyles[i] = Hunk_Alloc (strlen(str)+1);
-		strcpy (sv.lightstyles[i], str);
+		Q_strlcpy (sv.lightstyles[i], str, sizeof(sv.lightstyles[i]));
 	}
 
 // load the edicts out of the savegame file
@@ -821,7 +821,7 @@ int LoadGamestate(char *level, char *startspot)
 	{
 		fscanf (f, "%s\n", str);
 		sv.lightstyles[i] = Hunk_Alloc (strlen(str)+1);
-		strcpy (sv.lightstyles[i], str);
+		Q_strlcpy (sv.lightstyles[i], str, sizeof(sv.lightstyles[i]));
 	}
 
 // load the edicts out of the savegame file
@@ -890,12 +890,12 @@ void Host_Changelevel2_f (void)
 		return;
 	}
 
-	strcpy (level, Cmd_Argv(1));
+	Q_strlcpy (level, Cmd_Argv(1), sizeof(level));
 	if (Cmd_Argc() == 2)
 		startspot = NULL;
 	else
 	{
-		strcpy (_startspot, Cmd_Argv(2));
+		Q_strlcpy (_startspot, Cmd_Argv(2), sizeof(_startspot));
 		startspot = _startspot;
 	}
 
@@ -946,7 +946,7 @@ void Host_Name_f (void)
 	if (host_client->name[0] && strcmp(host_client->name, "unconnected") )
 		if (Q_strcmp(host_client->name, newName) != 0)
 			Con_Printf ("%s renamed to %s\n", host_client->name, newName);
-	Q_strcpy (host_client->name, newName);
+	Q_strlcpy (host_client->name, newName, sizeof(host_client->name));
 	host_client->edict->v.netname = PR_CreateServerString(host_client->name);
 	
 // send notification to all clients
@@ -1062,8 +1062,8 @@ void Host_Say(qboolean teamonly)
 	if (Q_strlen(p) > j)
 		p[j] = 0;
 
-	strcat (text, p);
-	strcat (text, "\n");
+	Q_strlcat (text, p, sizeof(text));
+	Q_strlcat (text, "\n", sizeof(text));
 
 	for (j = 0, client = svs.clients; j < svs.maxclients; j++, client++)
 	{
@@ -1109,8 +1109,8 @@ void Host_Tell_f(void)
 	if (Cmd_Argc () < 3)
 		return;
 
-	Q_strcpy(text, host_client->name);
-	Q_strcat(text, ": ");
+	Q_strlcpy(text, host_client->name, sizeof(text));
+	Q_strlcat(text, ": ", sizeof(text));
 
 	p = Cmd_Args();
 
@@ -1126,8 +1126,8 @@ void Host_Tell_f(void)
 	if (Q_strlen(p) > j)
 		p[j] = 0;
 
-	strcat (text, p);
-	strcat (text, "\n");
+	Q_strlcat (text, p, sizeof(text));
+	Q_strlcat (text, "\n", sizeof(text));
 
 	save = host_client;
 	for (j = 0, client = svs.clients; j < svs.maxclients; j++, client++)

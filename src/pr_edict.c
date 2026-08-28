@@ -275,7 +275,7 @@ eval_t *GetEdictFieldValue(edict_t *ed, char *field)
 	if (strlen(field) < MAX_FIELD_LEN)
 	{
 		gefvCache[rep].pcache = def;
-		strcpy (gefvCache[rep].field, field);
+		Q_strlcpy (gefvCache[rep].field, field, sizeof(gefvCache->field));
 		rep ^= 1;
 	}
 
@@ -826,7 +826,7 @@ void ED_ParseGlobals (char *data)
 		if (!data)
 			Sys_Error ("ED_ParseEntity: EOF without closing brace");
 
-		strcpy (keyname, com_token);
+		Q_strlcpy (keyname, com_token, sizeof(keyname));
 
 	// parse value
 		data = COM_Parse (data);
@@ -1048,7 +1048,7 @@ if (!strcmp(com_token, "light"))
 		if (anglehack)
 		{
 			char	temp[32];
-			strcpy (temp, com_token);
+			Q_strlcpy (temp, com_token, sizeof(temp));
 			sprintf (com_token, "0 %s 0", temp);
 		}
 

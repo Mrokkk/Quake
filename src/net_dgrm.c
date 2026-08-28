@@ -1172,10 +1172,10 @@ static void _Datagram_SearchForHosts (qboolean xmit)
 		hostcache[n].maxusers = MSG_ReadByte();
 		if (MSG_ReadByte() != NET_PROTOCOL_VERSION)
 		{
-			Q_strcpy(hostcache[n].cname, hostcache[n].name);
+			Q_strlcpy(hostcache[n].cname, hostcache[n].name, sizeof(hostcache[n].cname));
 			hostcache[n].cname[14] = 0;
-			Q_strcpy(hostcache[n].name, "*");
-			Q_strcat(hostcache[n].name, hostcache[n].cname);
+			Q_strlcpy(hostcache[n].name, "*", sizeof(hostcache[n].cname));
+			Q_strlcat(hostcache[n].name, hostcache[n].cname, sizeof(hostcache[n].cname));
 		}
 		Q_memcpy(&hostcache[n].addr, &readaddr, sizeof(struct qsockaddr));
 		hostcache[n].driver = net_driverlevel;
